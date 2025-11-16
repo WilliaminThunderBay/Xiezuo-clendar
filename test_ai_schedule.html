@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI助手创建日程测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fb;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .task-list {
+            margin-top: 15px;
+        }
+        .task-item {
+            padding: 10px;
+            background: white;
+            border: 1px solid #e8eef5;
+            border-radius: 6px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge.blue { background: #e3f2fd; color: #1976d2; }
+        .badge.red { background: #ffebee; color: #c62828; }
+        .badge.green { background: #e8f5e9; color: #2e7d32; }
+        .badge.orange { background: #fff3e0; color: #ef6c00; }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🧪 AI助手创建日程功能测试</h1>
+        <p style="color: #666; margin-bottom: 20px;">
+            此页面用于测试AI助手是否能正确创建日历日程
+        </p>
+
+        <div class="test-section">
+            <div class="test-title">1️⃣ 检查环境</div>
+            <button onclick="checkEnvironment()">检查环境</button>
+            <div id="envStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">2️⃣ 初始化模拟日历数据</div>
+            <button onclick="initMockData()">初始化数据</button>
+            <div id="initStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">3️⃣ 测试创建工单</div>
+            <button onclick="testCreateTask()">测试创建工单</button>
+            <div id="createStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">4️⃣ 打开AI助手进行实际测试</div>
+            <button onclick="openAIAssistant()">打开AI助手</button>
+            <p style="font-size: 13px; color: #666; margin-top: 10px;">
+                在AI助手中输入：<br>
+                <code style="background: #f0f0f0; padding: 5px; border-radius: 3px;">
+                    创建明天上午9点到12点的安装工单，地点浦东张江，车牌沪A12345，安装人员李明
+                </code>
+            </p>
+            <div id="aiStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">5️⃣ 当前任务列表</div>
+            <button onclick="refreshTaskList()">刷新列表</button>
+            <div id="taskList" class="task-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟日历页面环境
+        window.tasks = [];
+        
+        let aiAssistantWindow = null;
+
+        // 检查环境
+        function checkEnvironment() {
+            const statusEl = document.getElementById('envStatus');
+            let html = '<div class="status info" style="margin-top: 10px;">';
+            
+            // 检查window.tasks
+            if (typeof window.tasks !== 'undefined') {
+                html += '✅ window.tasks 已定义<br>';
+            } else {
+                html += '❌ window.tasks 未定义<br>';
+            }
+            
+            // 检查addTaskFromAI
+            if (typeof window.addTaskFromAI === 'function') {
+                html += '✅ window.addTaskFromAI 函数存在<br>';
+            } else {
+                html += '⚠️ window.addTaskFromAI 函数不存在（将自动创建）<br>';
+                createAddTaskFromAI();
+            }
+            
+            // 检查localStorage
+            if (typeof localStorage !== 'undefined') {
+                html += '✅ localStorage 可用<br>';
+            } else {
+                html += '❌ localStorage 不可用<br>';
+            }
+            
+            html += '</div>';
+            statusEl.innerHTML = html;
+        }
+
+        // 初始化模拟数据
+        function initMockData() {
+            window.tasks = [
+                { id: 1, number: 'W001', plate: '沪A88888', staff: '李明', date: '2024-11-20', time: '09:00-12:00', location: '浦东陆家嘴', service: '安装', color: 'blue', type: '常规订单' },
+                { id: 2, number: 'W002', plate: '沪B12345', staff: '张三', date: '2024-11-21', time: '14:00-17:00', location: '徐汇中山', service: '量尺', color: 'green', type: '常规订单' }
+            ];
+            
+            const statusEl = document.getElementById('initStatus');
+            statusEl.innerHTML = '<div class="status success" style="margin-top: 10px;">✅ 已初始化 ' + window.tasks.length + ' 个测试工单</div>';
+            
+            refreshTaskList();
+        }
+
+        // 创建addTaskFromAI函数（模拟主日历页面的功能）
+        function createAddTaskFromAI() {
+            window.addTaskFromAI = function(taskData) {
+                console.log('收到创建任务请求:', taskData);
+                
+                const newId = window.tasks.length > 0 
+                    ? Math.max(...window.tasks.map(t => t.id), 0) + 1 
+                    : 1;
+                
+                const newTask = {
+                    id: newId,
+                    number: taskData.number,
+                    plate: taskData.plate,
+                    staff: taskData.staff,
+                    date: taskData.date,
+                    time: taskData.time,
+                    location: taskData.location,
+                    service: taskData.service || '安装',
+                    note: taskData.note || '',
+                    color: taskData.color || 'blue',
+                    type: taskData.number.startsWith('G') ? '工程单' : '常规订单'
+                };
+                
+                window.tasks.push(newTask);
+                
+                console.log('任务创建成功:', newTask);
+                
+                // 刷新显示
+                refreshTaskList();
+                
+                return newTask;
+            };
+        }
+
+        // 测试创建工单
+        function testCreateTask() {
+            if (typeof window.addTaskFromAI !== 'function') {
+                createAddTaskFromAI();
+            }
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateStr = tomorrow.toISOString().split('T')[0];
+
+            const testTaskData = {
+                number: 'W' + String(window.tasks.length + 1).padStart(3, '0'),
+                plate: '沪A12345',
+                staff: '李明',
+                date: dateStr,
+                time: '09:00-12:00',
+                location: '浦东张江',
+                service: '安装',
+                color: 'blue'
+            };
+
+            try {
+                const newTask = window.addTaskFromAI(testTaskData);
+                
+                const statusEl = document.getElementById('createStatus');
+                statusEl.innerHTML = `
+                    <div class="status success" style="margin-top: 10px;">
+                        ✅ 测试工单创建成功！<br><br>
+                        <strong>工单信息：</strong><br>
+                        • 工单号：${newTask.number}<br>
+                        • 日期：${newTask.date}<br>
+                        • 时间：${newTask.time}<br>
+                        • 地点：${newTask.location}<br>
+                        • 人员：${newTask.staff}<br>
+                        • 车牌：${newTask.plate}
+                    </div>
+                `;
+            } catch (error) {
+                const statusEl = document.getElementById('createStatus');
+                statusEl.innerHTML = `<div class="status error" style="margin-top: 10px;">❌ 创建失败：${error.message}</div>`;
+            }
+        }
+
+        // 刷新任务列表
+        function refreshTaskList() {
+            const listEl = document.getElementById('taskList');
+            
+            if (!window.tasks || window.tasks.length === 0) {
+                listEl.innerHTML = '<p style="color: #999; padding: 10px;">暂无任务</p>';
+                return;
+            }
+
+            let html = '';
+            window.tasks.forEach(task => {
+                html += `
+                    <div class="task-item">
+                        <div>
+                            <strong>${task.number}</strong> - ${task.staff} | ${task.date} ${task.time}
+                            <br>
+                            <small style="color: #666;">${task.location} | ${task.plate}</small>
+                        </div>
+                        <span class="badge ${task.color}">${task.service}</span>
+                    </div>
+                `;
+            });
+            
+            listEl.innerHTML = html;
+        }
+
+        // 打开AI助手
+        function openAIAssistant() {
+            if (aiAssistantWindow && !aiAssistantWindow.closed) {
+                aiAssistantWindow.focus();
+                document.getElementById('aiStatus').innerHTML = '<div class="status info" style="margin-top: 10px;">✅ AI助手窗口已打开，请在其中测试创建功能</div>';
+                return;
+            }
+
+            const width = 1200;
+            const height = 800;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+
+            aiAssistantWindow = window.open(
+                'frontend/ai_assistant.html',
+                'AI智能助手',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+
+            if (!aiAssistantWindow) {
+                document.getElementById('aiStatus').innerHTML = '<div class="status error" style="margin-top: 10px;">❌ 无法打开AI助手窗口，请检查浏览器弹窗设置</div>';
+            } else {
+                document.getElementById('aiStatus').innerHTML = '<div class="status success" style="margin-top: 10px;">✅ AI助手窗口已打开！<br><br>请在AI助手中输入创建日程的指令，例如：<br>"创建明天上午9点到12点的安装工单，地点浦东张江，车牌沪A12345，安装人员李明"</div>';
+                
+                // 每2秒自动刷新任务列表
+                const refreshInterval = setInterval(() => {
+                    if (aiAssistantWindow && !aiAssistantWindow.closed) {
+                        refreshTaskList();
+                    } else {
+                        clearInterval(refreshInterval);
+                    }
+                }, 2000);
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            checkEnvironment();
+            initMockData();
+        };
+    </script>
+</body>
+</html>

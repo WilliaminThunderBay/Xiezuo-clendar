@@ -1,0 +1,13 @@
+{
+  "name": "xiezuo-calendar",
+  "version": "1.0.0",
+  "description": "工程安装月历管理系统",
+  "main": "backend/src/index.js",
+  "scripts": {
+    "start": "node backend/src/index.js",
+    "dev": "nodemon backend/src/index.js"
+  },
+  "keywords": ["calendar", "management", "installation"],
+  "author": "Your Name",
+  "license": "MIT"
+}

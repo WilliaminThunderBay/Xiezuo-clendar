@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI助手诊断工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .code-block {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #667eea;">🔍 AI助手连接诊断工具</h1>
+
+    <div class="test-card">
+        <div class="test-title">1️⃣ 测试主窗口访问</div>
+        <button onclick="testParentWindow()">测试父窗口连接</button>
+        <div id="parentResult"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">2️⃣ 测试tasks数组</div>
+        <button onclick="testTasksArray()">检查tasks数组</button>
+        <div id="tasksResult"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">3️⃣ 测试创建工单</div>
+        <button onclick="testCreateTask()">测试创建工单</button>
+        <div id="createResult"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">4️⃣ 查看localStorage</div>
+        <button onclick="testLocalStorage()">查看存储数据</button>
+        <div id="storageResult"></div>
+    </div>
+
+    <div class="test-card">
+        <div class="test-title">5️⃣ 使用说明</div>
+        <div class="info test-result">
+            <strong>📝 正确的使用流程：</strong><br><br>
+            1. 打开主页面：installation_schedule.html<br>
+            2. 等待页面完全加载（看到日历显示）<br>
+            3. 点击右上角的 🤖 AI智能助手 按钮<br>
+            4. 在AI助手窗口中输入创建指令<br><br>
+            <strong>⚠️ 错误的使用方式：</strong><br>
+            - ❌ 直接在浏览器打开 ai_assistant.html<br>
+            - ❌ 在主页面加载完成前打开AI助手<br>
+        </div>
+    </div>
+
+    <script>
+        // 测试父窗口连接
+        function testParentWindow() {
+            const resultDiv = document.getElementById('parentResult');
+            let html = '';
+
+            try {
+                const parentWindow = window.opener || window.parent;
+                
+                if (!parentWindow || parentWindow === window) {
+                    html = `<div class="error test-result">
+                        ❌ 错误：未检测到父窗口<br><br>
+                        <strong>原因：</strong>当前页面不是从主窗口打开的<br>
+                        <strong>解决：</strong>请从 installation_schedule.html 页面点击 🤖 按钮打开
+                    </div>`;
+                } else {
+                    html = `<div class="success test-result">
+                        ✅ 成功：父窗口连接正常<br>
+                        窗口对象：${parentWindow.constructor.name}<br>
+                        窗口位置：${parentWindow.location.href}
+                    </div>`;
+                    
+                    // 检查tasks
+                    if (typeof parentWindow.tasks !== 'undefined') {
+                        html += `<div class="success test-result">
+                            ✅ tasks数组存在<br>
+                            类型：${typeof parentWindow.tasks}<br>
+                            是否为数组：${Array.isArray(parentWindow.tasks)}<br>
+                            数量：${parentWindow.tasks ? parentWindow.tasks.length : 0} 个工单
+                        </div>`;
+                    } else {
+                        html += `<div class="error test-result">
+                            ❌ tasks数组不存在<br>
+                            请刷新主窗口并确保页面完全加载
+                        </div>`;
+                    }
+                }
+            } catch (error) {
+                html = `<div class="error test-result">
+                    ❌ 错误：${error.message}<br>
+                    堆栈：${error.stack}
+                </div>`;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // 测试tasks数组
+        function testTasksArray() {
+            const resultDiv = document.getElementById('tasksResult');
+            let html = '';
+
+            try {
+                const parentWindow = window.opener || window.parent;
+                
+                if (!parentWindow || parentWindow === window) {
+                    html = `<div class="error test-result">❌ 无法访问父窗口</div>`;
+                } else if (!parentWindow.tasks) {
+                    html = `<div class="error test-result">
+                        ❌ tasks数组未定义<br><br>
+                        <strong>可能原因：</strong><br>
+                        1. 主页面script标签未执行<br>
+                        2. 页面加载不完整<br>
+                        3. JavaScript错误阻止了初始化<br><br>
+                        <strong>解决方法：</strong><br>
+                        1. 刷新主页面（F5）<br>
+                        2. 打开主页面控制台查看错误<br>
+                        3. 确保没有JS错误后重新打开AI助手
+                    </div>`;
+                } else {
+                    const tasks = parentWindow.tasks;
+                    html = `<div class="success test-result">
+                        ✅ tasks数组正常<br>
+                        总数：${tasks.length} 个工单<br>
+                        类型：${Array.isArray(tasks) ? '数组' : typeof tasks}
+                    </div>`;
+                    
+                    if (tasks.length > 0) {
+                        html += `<div class="code-block">
+                            <strong>最近3个工单：</strong><br>
+                            <pre>${JSON.stringify(tasks.slice(0, 3), null, 2)}</pre>
+                        </div>`;
+                    }
+                }
+            } catch (error) {
+                html = `<div class="error test-result">❌ ${error.message}</div>`;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // 测试创建工单
+        function testCreateTask() {
+            const resultDiv = document.getElementById('createResult');
+            let html = '';
+
+            try {
+                const parentWindow = window.opener || window.parent;
+                
+                if (!parentWindow || parentWindow === window) {
+                    html = `<div class="error test-result">❌ 无法访问父窗口</div>`;
+                } else if (!parentWindow.tasks) {
+                    html = `<div class="error test-result">❌ tasks数组不存在</div>`;
+                } else {
+                    // 创建测试工单
+                    const testTask = {
+                        id: Math.max(...parentWindow.tasks.map(t => t.id), 0) + 1,
+                        number: 'W' + String(Math.max(...parentWindow.tasks.map(t => parseInt(t.number.replace(/\D/g, '')) || 0), 0) + 1).padStart(3, '0'),
+                        plate: '沪A·TEST',
+                        staff: '测试员工',
+                        date: new Date().toISOString().split('T')[0],
+                        time: '09:00-12:00',
+                        location: '测试地点',
+                        service: '安装',
+                        note: '这是诊断工具创建的测试工单',
+                        color: 'blue',
+                        type: '常规订单'
+                    };
+
+                    const beforeCount = parentWindow.tasks.length;
+                    parentWindow.tasks.push(testTask);
+                    const afterCount = parentWindow.tasks.length;
+
+                    html = `<div class="success test-result">
+                        ✅ 工单创建成功<br><br>
+                        工单号：${testTask.number}<br>
+                        创建前数量：${beforeCount}<br>
+                        创建后数量：${afterCount}<br>
+                        增加：${afterCount - beforeCount} 个
+                    </div>`;
+
+                    // 尝试刷新日历
+                    if (typeof parentWindow.renderCalendar === 'function') {
+                        parentWindow.renderCalendar();
+                        html += `<div class="success test-result">✅ 已刷新日历</div>`;
+                    } else {
+                        html += `<div class="error test-result">❌ renderCalendar函数不存在</div>`;
+                    }
+
+                    // 保存到localStorage
+                    try {
+                        localStorage.setItem('installationTasks', JSON.stringify(parentWindow.tasks));
+                        html += `<div class="success test-result">✅ 已保存到localStorage</div>`;
+                    } catch (e) {
+                        html += `<div class="error test-result">❌ localStorage保存失败: ${e.message}</div>`;
+                    }
+                }
+            } catch (error) {
+                html = `<div class="error test-result">❌ ${error.message}<br><pre>${error.stack}</pre></div>`;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // 测试localStorage
+        function testLocalStorage() {
+            const resultDiv = document.getElementById('storageResult');
+            let html = '';
+
+            try {
+                const stored = localStorage.getItem('installationTasks');
+                
+                if (!stored) {
+                    html = `<div class="info test-result">
+                        ℹ️ localStorage中暂无数据<br>
+                        这是正常的，数据会在创建工单后自动保存
+                    </div>`;
+                } else {
+                    const tasks = JSON.parse(stored);
+                    html = `<div class="success test-result">
+                        ✅ localStorage数据存在<br>
+                        工单数量：${tasks.length}<br>
+                        数据大小：${(stored.length / 1024).toFixed(2)} KB
+                    </div>`;
+                    
+                    html += `<div class="code-block">
+                        <strong>存储的数据（最近3条）：</strong><br>
+                        <pre>${JSON.stringify(tasks.slice(0, 3), null, 2)}</pre>
+                    </div>`;
+                }
+            } catch (error) {
+                html = `<div class="error test-result">❌ ${error.message}</div>`;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // 页面加载时自动运行测试
+        window.addEventListener('load', () => {
+            testParentWindow();
+        });
+    </script>
+</body>
+</html>

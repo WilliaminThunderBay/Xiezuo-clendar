@@ -1,0 +1,3253 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工程安装月历管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .online-users {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-right: 20px;
+        }
+
+        .online-status {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-avatar:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.1);
+        }
+
+        .user-avatar.editing {
+            background: #ff6b6b;
+            box-shadow: 0 0 10px rgba(255,107,107,0.5);
+        }
+
+        .online-indicator {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .user-tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            bottom: 40px;
+            white-space: nowrap;
+            pointer-events: none;
+            display: none;
+            z-index: 500;
+        }
+
+        .user-avatar:hover .user-tooltip {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .month-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .month-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-wrapper {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0;
+            min-height: 700px;
+            background: white;
+        }
+
+        .day-header {
+            background: #f8f9fb;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            border-bottom: 2px solid #e8eef5;
+            border-right: 1px solid #e8eef5;
+        }
+
+        .day-header:nth-child(7n) {
+            border-right: none;
+        }
+
+        .day-cell {
+            border-right: 1px solid #e8eef5;
+            border-bottom: 1px solid #e8eef5;
+            padding: 10px;
+            min-height: 120px;
+            background: white;
+            overflow-y: auto;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+
+        .day-cell:nth-child(7n) {
+            border-right: none;
+        }
+
+        .day-cell.other-month {
+            background: #fafbfc;
+            color: #ccc;
+        }
+
+        .day-cell.today {
+            background: #f0f4ff;
+        }
+
+        .day-cell.overload {
+            background: #fff5f5;
+        }
+
+        .day-cell:hover {
+            background-color: #f8f9fb;
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .day-cell.today .day-number {
+            background: #667eea;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .day-tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .task-mini {
+            background: white;
+            border-left: 3px solid #667eea;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-mini:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transform: translateX(2px);
+        }
+
+        .task-mini.white { border-left-color: #bdbdbd; }
+        .task-mini.red { border-left-color: #f44336; background: #ffebee; }
+        .task-mini.blue { border-left-color: #2196f3; }
+        .task-mini.orange { border-left-color: #ff9800; background: #fff3e0; }
+        .task-mini.green { border-left-color: #4caf50; background: #f1f8e9; }
+
+        .task-mini.editing {
+            border: 2px dashed #ff6b6b;
+            opacity: 0.7;
+        }
+
+        .task-mini-text {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .task-mini-info {
+            font-size: 10px;
+            color: #999;
+        }
+
+        .editing-indicator {
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            width: 6px;
+            height: 6px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        .add-btn {
+            width: 100%;
+            height: 30px;
+            background: #f0f4ff;
+            border: 1px dashed #667eea;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #667eea;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-top: 4px;
+        }
+
+        .add-btn:hover {
+            background: #e8eef5;
+        }
+
+        /* 协作面板 */
+        .collaboration-panel {
+            position: fixed;
+            right: -320px;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+            z-index: 150;
+            overflow-y: auto;
+            transition: right 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .collaboration-panel.open {
+            right: 0;
+        }
+
+        .collab-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .collab-close {
+            cursor: pointer;
+            font-size: 20px;
+            background: none;
+            border: none;
+            color: white;
+        }
+
+        .collab-content {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .collab-section {
+            margin-bottom: 20px;
+        }
+
+        .collab-section-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #999;
+        }
+
+        .collab-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .collab-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .collab-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .collab-user-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .collab-user-action {
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .collab-user-action.editing {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: #333;
+            transform: scale(1.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        /* 详情面板 */
+        .detail-panel {
+            position: fixed;
+            right: -450px;
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+            z-index: 150;
+            overflow-y: auto;
+            transition: right 0.3s;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-close {
+            cursor: pointer;
+            font-size: 24px;
+            background: none;
+            border: none;
+            color: white;
+        }
+
+        .detail-body {
+            padding: 20px;
+        }
+
+        .detail-row {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .detail-actions .btn {
+            flex: 1;
+        }
+
+        .editing-by {
+            background: #fff3e0;
+            border-left: 3px solid #ff9800;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #e65100;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            z-index: 300;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .overflow-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #ccc #f5f5f5;
+        }
+
+        .overflow-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .overflow-scroll::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+
+        .overflow-scroll::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .collab-toggle {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .collab-toggle:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 通知铃铛 */
+        .notification-bell {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .notification-bell:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(15deg);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* AI助手悬浮窗 */
+        .ai-float-window {
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            width: 450px;
+            max-height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            display: none;
+            flex-direction: column;
+            z-index: 400;
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .ai-float-window.active {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .ai-float-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-float-icon {
+            font-size: 32px;
+        }
+
+        .ai-float-title {
+            flex: 1;
+        }
+
+        .ai-float-title h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .ai-float-title p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .ai-float-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .ai-float-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .ai-float-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .ai-mode-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ai-mode-btn {
+            padding: 12px;
+            border: 2px solid #e8eef5;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .ai-mode-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .ai-mode-btn.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .ai-mode-btn-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .ai-mode-btn-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .ai-mode-btn-desc {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .ai-input-area {
+            position: relative;
+        }
+
+        .ai-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e8eef5;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        .ai-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ai-tools {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ai-tool-btn {
+            padding: 8px 12px;
+            border: 1px solid #e8eef5;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .ai-tool-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .ai-tool-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .ai-submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .ai-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        }
+
+        .ai-submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-examples {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fb;
+            border-radius: 6px;
+        }
+
+        .ai-examples-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .ai-example-item {
+            font-size: 11px;
+            color: #667eea;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+
+        .ai-example-item:hover {
+            text-decoration: underline;
+        }
+
+        .ai-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+            transition: all 0.3s;
+            z-index: 500;
+        }
+
+        .ai-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.5);
+        }
+
+        .ai-fab-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #ff4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        .ai-loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .ai-loading.active {
+            display: block;
+        }
+
+        .ai-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .time-display {
+            background: #f5f7fa;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            border: 2px solid #e8eef5;
+            transition: all 0.2s;
+        }
+
+        .time-display:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🔧 工程安装月历管理系统</h1>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="openAddTaskModal()">+ 新建工单</button>
+                <button class="btn btn-secondary" onclick="openAIAssistant()">🤖 AI智能助手</button>
+                <button class="btn btn-secondary" onclick="window.location.href='reports.html'">📊 生成报表</button>
+            </div>
+        </div>
+        <div class="online-users">
+            <div class="notification-bell" onclick="window.location.href='notification-center.html'">
+                🔔
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </div>
+            <div class="online-status" id="onlineStatus"></div>
+            <button class="collab-toggle" onclick="toggleCollaborationPanel()">👥 协作</button>
+            <button class="collab-toggle" onclick="logout()" style="background: rgba(255,107,107,0.3); border-color: rgba(255,107,107,0.5);">🚪 退出</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="month-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="month-title" id="monthTitle"></div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="switchCalendarView('day')" id="dayViewBtn">📅 日</button>
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="switchCalendarView('week')" id="weekViewBtn">📆 周</button>
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; background: #667eea; color: white; border-color: #667eea;" onclick="switchCalendarView('month')" id="monthViewBtn">📋 月</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="yearSelect" class="form-select" style="width: 100px; padding: 8px;" onchange="handleYearMonthChange()">
+                </select>
+                <select id="monthSelect" class="form-select" style="width: 100px; padding: 8px;" onchange="handleYearMonthChange()">
+                    <option value="0">一月</option>
+                    <option value="1">二月</option>
+                    <option value="2">三月</option>
+                    <option value="3">四月</option>
+                    <option value="4">五月</option>
+                    <option value="5">六月</option>
+                    <option value="6">七月</option>
+                    <option value="7">八月</option>
+                    <option value="8">九月</option>
+                    <option value="9">十月</option>
+                    <option value="10">十一月</option>
+                    <option value="11">十二月</option>
+                </select>
+                <button class="btn btn-secondary" onclick="today()" style="padding: 8px 12px;">今天</button>
+            </div>
+        </div>
+
+        <div class="calendar-wrapper overflow-scroll">
+            <div class="calendar-grid" id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- 协作面板 -->
+    <div class="collaboration-panel" id="collaborationPanel">
+        <div class="collab-header">
+            <span>👥 在线协作</span>
+            <button class="collab-close" onclick="toggleCollaborationPanel()">✕</button>
+        </div>
+        <div class="collab-content">
+            <div class="collab-section">
+                <div class="collab-section-title">
+                    <span class="online-dot"></span> 在线成员
+                </div>
+                <div id="onlineMembers"></div>
+            </div>
+            <div class="collab-section">
+                <div class="collab-section-title">📝 正在编辑</div>
+                <div id="editingMembers"></div>
+            </div>
+            <div class="collab-section">
+                <div class="collab-section-title">📋 最近操作</div>
+                <div id="recentActivity"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情面板 -->
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div id="detailTitle"></div>
+            <button class="detail-close" onclick="closeDetailPanel()">✕</button>
+        </div>
+        <div class="detail-body" id="detailBody"></div>
+    </div>
+
+    <!-- 新建/编辑工单模态框 -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">新建工单</div>
+            
+            <div class="form-group">
+                <label class="form-label">工单号 *</label>
+                <input type="text" class="form-input" id="taskNumber" placeholder="如: W001 或 G001">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">车牌号 *</label>
+                    <input type="text" class="form-input" id="taskPlate" placeholder="如: 沪A·88888">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">安装人员 *</label>
+                    <div style="display: flex; gap: 6px; align-items: stretch;">
+                        <select class="form-select" id="taskStaff" style="flex: 1; padding: 12px;">
+                            <option value="">选择人员</option>
+                            <option value="李明">李明</option>
+                            <option value="张三">张三</option>
+                            <option value="王五">王五</option>
+                            <option value="赵六">赵六</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" style="padding: 8px 10px; white-space: nowrap; flex-shrink: 0; font-size: 12px;" onclick="addStaff()">➕</button>
+                        <button type="button" class="btn btn-danger" style="padding: 8px 10px; white-space: nowrap; flex-shrink: 0; font-size: 12px;" onclick="deleteStaff()">🗑️</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">日期 *</label>
+                    <input type="date" class="form-input" id="taskDate">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">时间段 *</label>
+                    <div class="time-display" id="timeDisplay" onclick="openTimePicker()">
+                        选择时间
+                    </div>
+                    <input type="hidden" id="taskTime">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">服务类型 *</label>
+                    <div style="display: flex; gap: 6px; align-items: stretch;">
+                        <select class="form-select" id="taskService" style="flex: 1; padding: 12px;">
+                            <option value="">选择服务</option>
+                            <option value="量尺">量尺</option>
+                            <option value="安装">安装</option>
+                            <option value="维修">维修</option>
+                            <option value="售后">售后</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" style="padding: 8px 10px; white-space: nowrap; flex-shrink: 0; font-size: 12px;" onclick="addServiceType()">➕</button>
+                        <button type="button" class="btn btn-danger" style="padding: 8px 10px; white-space: nowrap; flex-shrink: 0; font-size: 12px;" onclick="deleteServiceType()">🗑️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">地点 *</label>
+                    <input type="text" class="form-input" id="taskLocation" placeholder="如: 浦东陆家嘳">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">备注</label>
+                <input type="text" class="form-input" id="taskNote" placeholder="如: 晚上必须完成">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">优先级/类型</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #bdbdbd;" onclick="selectColor(this, 'white')" title="常规订单"></div>
+                    <div class="color-option" style="background: #2196f3;" onclick="selectColor(this, 'blue')" title="工程单"></div>
+                    <div class="color-option" style="background: #ff9800;" onclick="selectColor(this, 'orange')" title="工程单"></div>
+                    <div class="color-option selected" style="background: #f44336;" onclick="selectColor(this, 'red')" title="加班单"></div>
+                    <div class="color-option" style="background: #4caf50;" onclick="selectColor(this, 'green')" title="普通"></div>
+                </div>
+                <input type="hidden" id="taskColor" value="red">
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTaskModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTask()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI浮动按钮 -->
+    <button class="ai-fab" onclick="openAIAssistant()" title="AI智能助手 - 点击打开独立窗口">
+        🤖
+    </button>
+
+    <script src="app-config.js"></script>
+
+    
+    <script>
+        // 检查登录状态
+        function checkLogin() {
+            const user = getStoredUser();
+            const token = getAuthToken();
+            if (!user || !token) {
+                clearSession();
+                window.location.href = 'login.html';
+                return null;
+            }
+            return user;
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                clearSession();
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 页面加载时验证登录
+        const loggedInUser = checkLogin();
+        if (loggedInUser) {
+            console.log('当前用户:', loggedInUser.username || loggedInUser.name);
+        }
+
+        // 当前用户
+        const currentUser = loggedInUser ? {
+            id: loggedInUser.id || 1,
+            name: loggedInUser.username || loggedInUser.name || '我',
+            initials: (loggedInUser.username || loggedInUser.name || 'ME').substring(0, 2).toUpperCase(),
+            color: '#667eea'
+        } : {
+            id: 1,
+            name: '我',
+            initials: 'ME',
+            color: '#667eea'
+        };
+
+        // 在线用户
+        let onlineUsers = [
+            { id: 1, name: '我', initials: '我', status: '在线', isEditing: false, color: '#667eea' },
+            { id: 2, name: '李明', initials: 'LM', status: '在线', isEditing: true, editingTask: 'W001', color: '#ff6b6b' },
+            { id: 3, name: '张三', initials: 'ZS', status: '在线', isEditing: false, color: '#4ecdc4' },
+            { id: 4, name: '王五', initials: 'WW', status: '在线', isEditing: false, color: '#f39c12' },
+            { id: 5, name: '赵六', initials: 'ZL', status: '离线', isEditing: false, color: '#9b59b6' }
+        ];
+
+        // 最近操作日志
+        let activityLog = [
+            { user: '李明', action: '编辑了', task: 'W001', time: '2分钟前' },
+            { user: '张三', action: '创建了', task: 'W008', time: '5分钟前' },
+            { user: '王五', action: '完成了', task: 'G003', time: '15分钟前' },
+            { user: '我', action: '删除了', task: 'W002', time: '20分钟前' }
+        ];
+
+        let currentMonth = new Date();
+        let currentView = 'month'; // 'day', 'week', 'month'
+        
+        // 使用window.tasks以便AI助手子窗口可以访问
+        window.tasks = [
+            { id: 1, number: 'W001', plate: '沪A·88888', staff: '李明', date: '2024-10-20', time: '19:00-22:00', location: '浦东陆家嘴', note: '晚上必须完成', color: 'red', type: '常规订单', service: '安装', editingBy: 2 },
+            { id: 2, number: 'G001', plate: '沪B·12345', staff: '李明', date: '2024-10-20', time: '20:00-23:00', location: '浦西外滩', note: '加班单', color: 'red', type: '工程单', service: '安装' },
+            { id: 3, number: 'W002', plate: '沪A·99999', staff: '张三', date: '2024-10-21', time: '08:00-11:00', location: '浦东世纪大道', note: '', color: 'blue', type: '常规订单', service: '量尺' },
+            { id: 4, number: 'G002', plate: '沪B·54321', staff: '王五', date: '2024-10-21', time: '14:00-17:00', location: '虹口北外滩', note: '工程单', color: 'orange', type: '工程单', service: '安装' },
+            { id: 5, number: 'W003', plate: '沪A·11111', staff: '赵六', date: '2024-10-22', time: '09:00-12:00', location: '浦东张江', note: '', color: 'white', type: '常规订单', service: '安装' },
+            { id: 6, number: 'W004', plate: '沪A·77777', staff: '李明', date: '2024-10-25', time: '15:00-18:00', location: '长宁虹桥', note: '', color: 'green', type: '常规订单', service: '量尺' },
+            { id: 7, number: 'W005', plate: '沪B·66666', staff: '张三', date: '2024-10-25', time: '19:00-22:00', location: '闵行莫干山', note: '', color: 'blue', type: '常规订单', service: '安装' },
+            { id: 8, number: 'G003', plate: '沪A·33333', staff: '王五', date: '2024-10-26', time: '10:00-13:00', location: '松江泗泾', note: '工程单', color: 'orange', type: '工程单', service: '安装' },
+            { id: 9, number: 'W006', plate: '沪A·44444', staff: '赵六', date: '2024-10-28', time: '09:00-12:00', location: '浦东三林', note: '', color: 'green', type: '常规订单', service: '维修' },
+            { id: 10, number: 'W007', plate: '沪B·22222', staff: '李明', date: '2024-10-31', time: '16:00-19:00', location: '普陀真北', note: '', color: 'white', type: '常规订单', service: '售后' },
+            // 添加20个订单到10月15日
+            { id: 11, number: 'W008', plate: '沪A·55555', staff: '李明', date: '2024-10-15', time: '08:00-11:00', location: '浦东外高桥', note: '', color: 'blue', type: '常规订单', service: '量尺' },
+            { id: 12, number: 'W009', plate: '沪B·88899', staff: '张三', date: '2024-10-15', time: '08:00-11:00', location: '浦西静安', note: '', color: 'green', type: '常规订单', service: '安装' },
+            { id: 13, number: 'W010', plate: '沪A·12121', staff: '王五', date: '2024-10-15', time: '08:00-11:00', location: '浦东浦西', note: '', color: 'blue', type: '常规订单', service: '维修' },
+            { id: 14, number: 'W011', plate: '沪B·34343', staff: '赵六', date: '2024-10-15', time: '09:00-12:00', location: '长宁中山', note: '', color: 'white', type: '常规订单', service: '售后' },
+            { id: 15, number: 'W012', plate: '沪A·56565', staff: '李明', date: '2024-10-15', time: '09:00-12:00', location: '闵行莘庄', note: '优先处理', color: 'red', type: '常规订单', service: '安装' },
+            { id: 16, number: 'G004', plate: '沪B·78789', staff: '张三', date: '2024-10-15', time: '09:00-12:00', location: '虹口提篮', note: '工程单', color: 'orange', type: '工程单', service: '量尺' },
+            { id: 17, number: 'W013', plate: '沪A·90909', staff: '王五', date: '2024-10-15', time: '10:00-13:00', location: '浦东迪士尼', note: '', color: 'green', type: '常规订单', service: '安装' },
+            { id: 18, number: 'W014', plate: '沪B·11211', staff: '赵六', date: '2024-10-15', time: '10:00-13:00', location: '静安南京东路', note: '', color: 'blue', type: '常规订单', service: '量尺' },
+            { id: 19, number: 'W015', plate: '沪A·33433', staff: '李明', date: '2024-10-15', time: '14:00-17:00', location: '浦东浦江', note: '客户投诉', color: 'red', type: '常规订单', service: '维修' },
+            { id: 20, number: 'W016', plate: '沪B·55655', staff: '张三', date: '2024-10-15', time: '14:00-17:00', location: '长宁虹桥机场', note: '', color: 'white', type: '常规订单', service: '安装' },
+            { id: 21, number: 'G005', plate: '沪A·77977', staff: '王五', date: '2024-10-15', time: '14:00-17:00', location: '浦东新场', note: '工程单', color: 'orange', type: '工程单', service: '售后' },
+            { id: 22, number: 'W017', plate: '沪B·99099', staff: '赵六', date: '2024-10-15', time: '15:00-18:00', location: '松江茸城', note: '', color: 'green', type: '常规订单', service: '量尺' },
+            { id: 23, number: 'W018', plate: '沪A·11311', staff: '李明', date: '2024-10-15', time: '15:00-18:00', location: '青浦朱家角', note: '', color: 'blue', type: '常规订单', service: '安装' },
+            { id: 24, number: 'W019', plate: '沪B·55755', staff: '张三', date: '2024-10-15', time: '16:00-19:00', location: '奉贤南桥', note: '需要加班', color: 'red', type: '常规订单', service: '维修' },
+            { id: 25, number: 'W020', plate: '沪A·77877', staff: '王五', date: '2024-10-15', time: '16:00-19:00', location: '崇明堡镇', note: '', color: 'white', type: '常规订单', service: '安装' },
+            { id: 26, number: 'G006', plate: '沪B·99199', staff: '赵六', date: '2024-10-15', time: '19:00-22:00', location: '浦东陆家嘴', note: '工程单-急单', color: 'red', type: '工程单', service: '量尺' },
+            { id: 27, number: 'W021', plate: '沪A·11411', staff: '李明', date: '2024-10-15', time: '19:00-22:00', location: '浦西和平饭店', note: '', color: 'blue', type: '常规订单', service: '安装' },
+            { id: 28, number: 'W022', plate: '沪B·55855', staff: '张三', date: '2024-10-15', time: '20:00-23:00', location: '静安威海路', note: '', color: 'green', type: '常规订单', service: '售后' },
+            { id: 29, number: 'W023', plate: '沪A·77977', staff: '王五', date: '2024-10-15', time: '20:00-23:00', location: '黄浦城隍庙', note: '下班后处理', color: 'red', type: '常规订单', service: '维修' },
+            { id: 30, number: 'W024', plate: '沪B·99299', staff: '赵六', date: '2024-10-15', time: '21:00-00:00', location: '浦东世纪公园', note: '', color: 'white', type: '常规订单', service: '安装' }
+        ];
+
+        let currentEditId = null;
+        let selectedColor = 'red';
+
+        // 动态选项列表
+        let staffList = ['李明', '张三', '王五', '赵六'];
+        let serviceList = ['量尺', '安装', '维修', '售后'];
+        let uploadedFiles = [];
+
+        // 显示添加人员模态框
+        function addStaff() {
+            const modalHTML = `
+                <div class="modal active" id="addStaffModal" style="z-index: 300;">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div class="modal-header" style="margin: 0;">添加安装人员</div>
+                            <button class="detail-close" onclick="document.getElementById('addStaffModal').remove()" style="margin: 0; position: static; font-size: 24px; background: none; border: none; color: #333; cursor: pointer;">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">人员姓名 *</label>
+                            <input type="text" class="form-input" id="newStaffName" placeholder="请输入人员姓名" onkeypress="if(event.key==='Enter') confirmAddStaff()">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="document.getElementById('addStaffModal').remove()">取消</button>
+                            <button class="btn btn-primary" onclick="confirmAddStaff()">确定添加</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const existing = document.getElementById('addStaffModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.getElementById('newStaffName').focus();
+        }
+
+        // 确认添加人员
+        function confirmAddStaff() {
+            const input = document.getElementById('newStaffName');
+            const name = input.value.trim();
+            const modal = document.getElementById('addStaffModal');
+            
+            if (!name) {
+                showToast('请输入人员姓名');
+                return;
+            }
+            
+            if (staffList.includes(name)) {
+                showToast('该人员已存在');
+                return;
+            }
+            
+            staffList.push(name);
+            updateStaffSelect();
+            document.getElementById('taskStaff').value = name;
+            modal.remove();
+            showToast(`已添加人员: ${name}`);
+        }
+
+        // 删除安装人员
+        function deleteStaff() {
+            const select = document.getElementById('taskStaff');
+            const selected = select.value;
+            
+            if (!selected) {
+                showToast('请先选择要删除的人员');
+                return;
+            }
+            
+            // 不能删除原始人员
+            const originalStaff = ['李明', '张三', '王五', '赵六'];
+            if (originalStaff.includes(selected)) {
+                showToast('不能删除基础人员');
+                return;
+            }
+            
+            if (confirm(`确定删除人员 "${selected}" 吗?`)) {
+                staffList = staffList.filter(s => s !== selected);
+                updateStaffSelect();
+                select.value = '';
+                showToast(`已删除人员: ${selected}`);
+            }
+        }
+
+        // 显示添加服务类型模态框
+        function addServiceType() {
+            const modalHTML = `
+                <div class="modal active" id="addServiceModal" style="z-index: 300;">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div class="modal-header" style="margin: 0;">添加服务类型</div>
+                            <button class="detail-close" onclick="document.getElementById('addServiceModal').remove()" style="margin: 0; position: static; font-size: 24px; background: none; border: none; color: #333; cursor: pointer;">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">服务类型 *</label>
+                            <input type="text" class="form-input" id="newServiceName" placeholder="请输入服务类型" onkeypress="if(event.key==='Enter') confirmAddService()">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="document.getElementById('addServiceModal').remove()">取消</button>
+                            <button class="btn btn-primary" onclick="confirmAddService()">确定添加</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const existing = document.getElementById('addServiceModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.getElementById('newServiceName').focus();
+        }
+
+        // 确认添加服务类型
+        function confirmAddService() {
+            const input = document.getElementById('newServiceName');
+            const service = input.value.trim();
+            const modal = document.getElementById('addServiceModal');
+            
+            if (!service) {
+                showToast('请输入服务类型');
+                return;
+            }
+            
+            if (serviceList.includes(service)) {
+                showToast('该服务已存在');
+                return;
+            }
+            
+            serviceList.push(service);
+            updateServiceSelect();
+            document.getElementById('taskService').value = service;
+            modal.remove();
+            showToast(`已添加服务: ${service}`);
+        }
+
+        // 删除服务类型
+        function deleteServiceType() {
+            const select = document.getElementById('taskService');
+            const selected = select.value;
+            
+            if (!selected) {
+                showToast('请先选择要删除的服务');
+                return;
+            }
+            
+            // 不能删除原始服务
+            const originalServices = ['量尺', '安装', '维修', '售后'];
+            if (originalServices.includes(selected)) {
+                showToast('不能删除基础服务');
+                return;
+            }
+            
+            if (confirm(`确定删除服务 "${selected}" 吗?`)) {
+                serviceList = serviceList.filter(s => s !== selected);
+                updateServiceSelect();
+                select.value = '';
+                showToast(`已删除服务: ${selected}`);
+            }
+        }
+
+        // 更新安装人员下拉列表
+        function updateStaffSelect() {
+            const select = document.getElementById('taskStaff');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">选择人员</option>';
+            staffList.forEach(staff => {
+                const option = document.createElement('option');
+                option.value = staff;
+                option.textContent = staff;
+                select.appendChild(option);
+            });
+            select.value = currentValue;
+        }
+
+        // 更新服务类型下拉列表
+        function updateServiceSelect() {
+            const select = document.getElementById('taskService');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">选择服务</option>';
+            serviceList.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service;
+                option.textContent = service;
+                select.appendChild(option);
+            });
+            select.value = currentValue;
+        }
+
+        // 打开时间选择器
+        function openTimePicker() {
+            const currentTime = document.getElementById('taskTime').value || '';
+            const [startHour, startMin] = currentTime ? currentTime.split('-')[0].split(':') : ['08', '00'];
+            
+            const modalHTML = `
+                <div class="modal active" id="timePickerModal" style="z-index: 300;">
+                    <div class="modal-content" style="max-width: 500px; padding: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <div class="modal-header" style="margin: 0; font-size: 22px;">选择时间段</div>
+                            <button style="margin: 0; position: static; font-size: 28px; background: none; border: none; color: #999; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'" onclick="document.getElementById('timePickerModal').remove()">✕</button>
+                        </div>
+                        
+                        <div style="text-align: center; margin-bottom: 30px; font-size: 13px; color: #999; line-height: 1.6;">
+                            上下滚动或直接输入选择时间
+                        </div>
+
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 30px; gap: 40px;">
+                            <!-- 开始时间 -->
+                            <div style="text-align: center; flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 20px; color: #333; font-size: 14px;">开始时间</div>
+                                <div style="display: flex; justify-content: center; gap: 15px;">
+                                    <!-- 小时滚轮 -->
+                                    <div style="position: relative; width: 70px; height: 180px;">
+                                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 50px; transform: translateY(-50%); border-top: 1px solid #e8eef5; border-bottom: 1px solid #e8eef5; pointer-events: none; z-index: 10;"></div>
+                                        <div id="startHourPicker" style="height: 100%; overflow-y: scroll; scroll-behavior: smooth; padding: 75px 0;" onwheel="handleWheelScroll(event, 'startHourPicker')">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 分钟滚轮 -->
+                                    <div style="position: relative; width: 70px; height: 180px;">
+                                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 50px; transform: translateY(-50%); border-top: 1px solid #e8eef5; border-bottom: 1px solid #e8eef5; pointer-events: none; z-index: 10;"></div>
+                                        <div id="startMinPicker" style="height: 100%; overflow-y: scroll; scroll-behavior: smooth; padding: 75px 0;" onwheel="handleWheelScroll(event, 'startMinPicker')">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <input type="text" id="startTimeInput" value="${startHour}:00" style="width: 100px; padding: 8px; text-align: center; font-size: 14px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="this.select()" onchange="handleTimeInputChange('start')">
+                                </div>
+                            </div>
+
+                            <!-- 结束时间 -->
+                            <div style="text-align: center; flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 20px; color: #333; font-size: 14px;">结束时间</div>
+                                <div style="display: flex; justify-content: center; gap: 15px;">
+                                    <!-- 小时滚轮 -->
+                                    <div style="position: relative; width: 70px; height: 180px;">
+                                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 50px; transform: translateY(-50%); border-top: 1px solid #e8eef5; border-bottom: 1px solid #e8eef5; pointer-events: none; z-index: 10;"></div>
+                                        <div id="endHourPicker" style="height: 100%; overflow-y: scroll; scroll-behavior: smooth; padding: 75px 0;" onwheel="handleWheelScroll(event, 'endHourPicker')">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 分钟滚轮 -->
+                                    <div style="position: relative; width: 70px; height: 180px;">
+                                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 50px; transform: translateY(-50%); border-top: 1px solid #e8eef5; border-bottom: 1px solid #e8eef5; pointer-events: none; z-index: 10;"></div>
+                                        <div id="endMinPicker" style="height: 100%; overflow-y: scroll; scroll-behavior: smooth; padding: 75px 0;" onwheel="handleWheelScroll(event, 'endMinPicker')">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <input type="text" id="endTimeInput" value="${String((parseInt(startHour) + 3) % 24).padStart(2, '0')}:00" style="width: 100px; padding: 8px; text-align: center; font-size: 14px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="this.select()" onchange="handleTimeInputChange('end')">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin: 25px 0 35px;">
+                            <div style="font-size: 20px; font-weight: bold; color: #667eea; letter-spacing: 2px;">
+                                <span id="selectedTime">${startHour}:00 - ${String((parseInt(startHour) + 3) % 24).padStart(2, '0')}:00</span>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer" style="gap: 15px;">
+                            <button class="btn btn-secondary" style="flex: 1;" onclick="document.getElementById('timePickerModal').remove()">取消</button>
+                            <button class="btn btn-primary" style="flex: 1;" onclick="confirmTimePicker()">确定</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const existing = document.getElementById('timePickerModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // 初始化时间轮
+            initializeTimePickers(startHour, startMin);
+        }
+
+        // 初始化时间滚轮
+        function initializeTimePickers(startHour = '08', startMin = '00') {
+            const hours = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0'));
+            const minutes = ['00', '30'];
+            const endHour = String((parseInt(startHour) + 3) % 24).padStart(2, '0');
+            
+            const createPickerOptions = (options, isMinute = false) => {
+                return options.map((opt, idx) => 
+                    `<div class="time-picker-option" style="height: 50px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #999; cursor: pointer;" data-value="${opt}">${opt}</div>`
+                ).join('');
+            };
+            
+            // 创建小时和分钟选项
+            document.getElementById('startHourPicker').innerHTML = createPickerOptions(hours, false);
+            document.getElementById('startMinPicker').innerHTML = createPickerOptions(minutes, true);
+            document.getElementById('endHourPicker').innerHTML = createPickerOptions(hours, false);
+            document.getElementById('endMinPicker').innerHTML = createPickerOptions(minutes, true);
+            
+            // 初始化滚轮位置
+            const startHourIndex = hours.indexOf(startHour);
+            const startMinIndex = minutes.indexOf(startMin);
+            const endHourIndex = hours.indexOf(endHour);
+            
+            document.getElementById('startHourPicker').scrollTop = startHourIndex * 50;
+            document.getElementById('startMinPicker').scrollTop = startMinIndex * 50;
+            document.getElementById('endHourPicker').scrollTop = endHourIndex * 50;
+            document.getElementById('endMinPicker').scrollTop = 0;
+            
+            // 监听滚轮事件
+            attachPickerListeners('startHourPicker', hours);
+            attachPickerListeners('startMinPicker', minutes);
+            attachPickerListeners('endHourPicker', hours);
+            attachPickerListeners('endMinPicker', minutes);
+            
+            updatePickerDisplay();
+        }
+
+        // 处理鼠标滚轮
+        function handleWheelScroll(event, pickerId) {
+            event.preventDefault();
+            const picker = document.getElementById(pickerId);
+            picker.scrollTop += event.deltaY > 0 ? 50 : -50;
+        }
+
+        // 绑定滚轮监听
+        function attachPickerListeners(pickerId, options) {
+            const picker = document.getElementById(pickerId);
+            let scrollTimeout;
+            
+            picker.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    // 自动对齐
+                    const index = Math.round(picker.scrollTop / 50);
+                    picker.scrollTop = Math.max(0, Math.min(index * 50, (options.length - 1) * 50));
+                    updatePickerDisplay();
+                }, 100);
+            });
+        }
+
+        // 更新滚轮显示
+        function updatePickerDisplay() {
+            const pickers = ['startHourPicker', 'startMinPicker', 'endHourPicker', 'endMinPicker'];
+            
+            pickers.forEach(pickerId => {
+                const picker = document.getElementById(pickerId);
+                const options = picker.querySelectorAll('.time-picker-option');
+                options.forEach(opt => {
+                    opt.style.color = '#999';
+                    opt.style.fontSize = '20px';
+                    opt.style.fontWeight = 'normal';
+                });
+                
+                const centerIndex = Math.round(picker.scrollTop / 50);
+                if (options[centerIndex]) {
+                    options[centerIndex].style.color = '#667eea';
+                    options[centerIndex].style.fontSize = '28px';
+                    options[centerIndex].style.fontWeight = 'bold';
+                }
+            });
+            
+            updateTimeDisplay();
+        }
+
+        // 更新时间显示
+        function updateTimeDisplay() {
+            const getSelectedValue = (pickerId) => {
+                const picker = document.getElementById(pickerId);
+                const centerIndex = Math.round(picker.scrollTop / 50);
+                return picker.querySelectorAll('.time-picker-option')[centerIndex]?.textContent || '00';
+            };
+            
+            const startHour = getSelectedValue('startHourPicker');
+            const startMin = getSelectedValue('startMinPicker');
+            const endHour = getSelectedValue('endHourPicker');
+            const endMin = getSelectedValue('endMinPicker');
+            
+            document.getElementById('startTimeInput').value = `${startHour}:${startMin}`;
+            document.getElementById('endTimeInput').value = `${endHour}:${endMin}`;
+            document.getElementById('selectedTime').textContent = `${startHour}:${startMin} - ${endHour}:${endMin}`;
+        }
+
+        // 处理直接输入
+        function handleTimeInputChange(type) {
+            const input = document.getElementById(`${type}TimeInput`);
+            const value = input.value;
+            const [hour, min] = value.split(':');
+            
+            if (hour && min) {
+                const hourNum = Math.max(0, Math.min(23, parseInt(hour)));
+                const minNum = ['00', '30'].includes(min) ? min : '00';
+                input.value = `${String(hourNum).padStart(2, '0')}:${minNum}`;
+                updateTimeDisplay();
+            }
+        }
+
+        // 确认时间选择
+        function confirmTimePicker() {
+            const startTime = document.getElementById('startTimeInput').value;
+            const endTime = document.getElementById('endTimeInput').value;
+            
+            const timeValue = `${startTime}-${endTime}`;
+            document.getElementById('taskTime').value = timeValue;
+            document.getElementById('timeDisplay').textContent = timeValue;
+            
+            document.getElementById('timePickerModal').remove();
+            showToast('时间已选择');
+        }
+
+        // AI智能排班
+        function openAIScheduleModal() {
+            const modalHTML = `
+                <div class="modal active" id="aiScheduleModal" style="z-index: 300;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div class="modal-header" style="margin: 0;">🤖 AI智能排班</div>
+                            <button style="margin: 0; position: static; font-size: 24px; background: none; border: none; color: #333; cursor: pointer;" onclick="document.getElementById('aiScheduleModal').remove()">✕</button>
+                        </div>
+                        
+                        <div style="background: #f0f4ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; color: #667eea;">
+                            💡 输入工单信息，AI将自动解析并智能安排到最优时间，支持批量导入
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">输入工单信息</label>
+                            <textarea class="form-input" id="aiScheduleInput" placeholder="例如：
+W025 沪A·12345 李明 2024-11-20 09:00 浦东张江 量尺 
+W026 沪B·67890 张三 2024-11-21 14:00 虹口北外滩 安装 紧急
+G007 沪A·11111 王五 2024-11-22 19:00 长宁虹桥 维修 工程单
+
+支持格式：工单号 车牌 人员 日期 时间 地点 服务类型 备注（可选）
+每行一个工单，用空格分隔，AI会自动识别并填充" style="min-height: 200px; font-family: monospace; font-size: 12px;"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">排班策略</label>
+                            <select class="form-select" id="aiStrategy">
+                                <option value="balance">均衡分配 - 平衡每个人的工作量</option>
+                                <option value="efficiency">效率优先 - 按人员技能和地理位置优化</option>
+                                <option value="urgent">紧急优先 - 优先安排紧急工单</option>
+                                <option value="cluster">区域聚合 - 相同地点工单集中安排</option>
+                            </select>
+                        </div>
+
+                        <div style="background: #fff3e0; padding: 12px; border-radius: 4px; margin: 15px 0; font-size: 12px; color: #e65100;">
+                            ⚠️ AI分析中将考虑：人员工作量、地理位置、技能匹配、时间冲突、加班情况
+                        </div>
+
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="document.getElementById('aiScheduleModal').remove()">取消</button>
+                            <button class="btn btn-primary" onclick="processAISchedule()">🚀 开始智能排班</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const existing = document.getElementById('aiScheduleModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.getElementById('aiScheduleInput').focus();
+        }
+
+        // 处理AI排班
+        function processAISchedule() {
+            const input = document.getElementById('aiScheduleInput').value.trim();
+            const strategy = document.getElementById('aiStrategy').value;
+            
+            if (!input) {
+                showToast('请输入工单信息');
+                return;
+            }
+
+            showToast('AI正在分析...');
+            
+            // 模拟AI处理延迟
+            setTimeout(() => {
+                const lines = input.split('\n').filter(line => line.trim());
+                let successCount = 0;
+                let failCount = 0;
+                const newTasks = [];
+
+                lines.forEach(line => {
+                    const parts = line.trim().split(/\s+/);
+                    if (parts.length >= 7) {
+                        const [number, plate, staff, date, time, location, service, ...noteArr] = parts;
+                        const note = noteArr.join(' ');
+                        
+                        // 智能判断颜色
+                        let color = 'white';
+                        if (note.includes('紧急') || note.includes('加班')) color = 'red';
+                        else if (number.startsWith('G')) color = 'orange';
+                        else if (note.includes('优先')) color = 'blue';
+                        else color = 'green';
+
+                        // 智能时间优化
+                        let optimizedTime = time;
+                        if (strategy === 'efficiency') {
+                            // 根据地理位置优化时间
+                            const hour = parseInt(time.split(':')[0]);
+                            if (location.includes('浦东')) {
+                                optimizedTime = hour < 12 ? '09:00-12:00' : '14:00-17:00';
+                            }
+                        }
+
+                        const newTask = {
+                            id: Math.max(...tasks.map(t => t.id), 0) + newTasks.length + 1,
+                            number,
+                            plate,
+                            staff: staffList.includes(staff) ? staff : staffList[0],
+                            date,
+                            time: optimizedTime,
+                            location,
+                            service: serviceList.includes(service) ? service : serviceList[0],
+                            note,
+                            color,
+                            type: number.startsWith('G') ? '工程单' : '常规订单'
+                        };
+
+                        newTasks.push(newTask);
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                });
+
+                tasks.push(...newTasks);
+                
+                // 应用智能优化策略
+                if (strategy === 'balance') {
+                    balanceWorkload();
+                } else if (strategy === 'cluster') {
+                    clusterByLocation();
+                }
+
+                document.getElementById('aiScheduleModal').remove();
+                renderCalendar();
+                addActivityLog('AI助手', '智能排班', `成功${successCount}个，失败${failCount}个`);
+                showToast(`✅ AI排班完成！成功导入${successCount}个工单`);
+            }, 1500);
+        }
+
+        // 均衡工作量
+        function balanceWorkload() {
+            const staffWorkload = {};
+            staffList.forEach(s => staffWorkload[s] = 0);
+            
+            tasks.forEach(task => {
+                if (task.staff) staffWorkload[task.staff]++;
+            });
+
+            // 简单的负载均衡：将工作量最多的人的任务分配给工作量最少的人
+            const sortedStaff = Object.keys(staffWorkload).sort((a, b) => staffWorkload[a] - staffWorkload[b]);
+            console.log('工作量均衡:', staffWorkload);
+        }
+
+        // 区域聚合
+        function clusterByLocation() {
+            const locationGroups = {};
+            tasks.forEach(task => {
+                const area = task.location.substring(0, 2); // 前两个字
+                if (!locationGroups[area]) locationGroups[area] = [];
+                locationGroups[area].push(task);
+            });
+            console.log('区域聚合:', locationGroups);
+        }
+
+        // 初始化
+        function init() {
+            initYearSelect();
+            renderCalendar();
+            updateOnlineStatus();
+            updateCollaborationPanel();
+            loadUnreadNotificationCount(); // 加载未读通知数
+        }
+
+        // 初始化年份下拉
+        function initYearSelect() {
+            const yearSelect = document.getElementById('yearSelect');
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear - 5; y <= currentYear + 10; y++) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y + '年';
+                yearSelect.appendChild(option);
+            }
+            yearSelect.value = currentYear;
+            document.getElementById('monthSelect').value = new Date().getMonth();
+        }
+
+        // 处理年月变化
+        function handleYearMonthChange() {
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            currentMonth = new Date(year, month, 1);
+            renderCalendar();
+        }
+
+        // 切换视图
+        function switchCalendarView(view) {
+            currentView = view;
+            document.getElementById('dayViewBtn').style.background = view === 'day' ? '#667eea' : 'rgba(255,255,255,0.2)';
+            document.getElementById('dayViewBtn').style.color = 'white';
+            document.getElementById('dayViewBtn').style.borderColor = view === 'day' ? '#667eea' : 'white';
+            
+            document.getElementById('weekViewBtn').style.background = view === 'week' ? '#667eea' : 'rgba(255,255,255,0.2)';
+            document.getElementById('weekViewBtn').style.color = 'white';
+            document.getElementById('weekViewBtn').style.borderColor = view === 'week' ? '#667eea' : 'white';
+            
+            document.getElementById('monthViewBtn').style.background = view === 'month' ? '#667eea' : 'rgba(255,255,255,0.2)';
+            document.getElementById('monthViewBtn').style.color = 'white';
+            document.getElementById('monthViewBtn').style.borderColor = view === 'month' ? '#667eea' : 'white';
+            
+            renderCalendar();
+        }
+
+        // 更新在线状态
+        function updateOnlineStatus() {
+            const online = onlineUsers.filter(u => u.status === '在线');
+            const statusEl = document.getElementById('onlineStatus');
+            statusEl.innerHTML = `
+                <span class="online-indicator"></span>
+                <span style="font-size: 13px; margin-right: 10px;">${online.length}人在线</span>
+                ${online.map(u => `
+                    <div class="user-avatar ${u.isEditing ? 'editing' : ''}" style="background: ${u.color};" title="${u.name}${u.isEditing ? ` - 正在编辑 ${u.editingTask}` : ''}">
+                        ${u.initials}
+                        <div class="user-tooltip">${u.name}${u.isEditing ? `<br/>正在编辑: ${u.editingTask}` : ''}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // 加载未读通知数
+        async function loadUnreadNotificationCount() {
+            try {
+                const response = await fetchWithAuth(`${API_BASE_URL}/api/notifications/unread-count`);
+                const data = await response.json();
+                
+                const badge = document.getElementById('notificationBadge');
+                if (data.count > 0) {
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('加载未读通知数失败:', error);
+            }
+        }
+
+        // 定时刷新通知数
+        setInterval(loadUnreadNotificationCount, 60000); // 每分钟刷新一次
+
+        // 更新协作面板
+        function updateCollaborationPanel() {
+            // 在线成员
+            const onlineMembersEl = document.getElementById('onlineMembers');
+            onlineMembersEl.innerHTML = onlineUsers
+                .filter(u => u.status === '在线')
+                .map(u => `
+                    <div class="collab-user" style="border-left: 3px solid ${u.color};">
+                        <div class="collab-user-avatar" style="background: ${u.color};">${u.initials}</div>
+                        <div class="collab-user-info">
+                            <div class="collab-user-name">${u.name}</div>
+                            <div class="collab-user-action">${u.isEditing ? '✏️ 正在编辑' : '👀 浏览中'}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+            // 正在编辑的成员
+            const editingMembersEl = document.getElementById('editingMembers');
+            const editingUsers = onlineUsers.filter(u => u.isEditing);
+            if (editingUsers.length === 0) {
+                editingMembersEl.innerHTML = '<div style="color: #999; font-size: 12px;">暂无人员编辑</div>';
+            } else {
+                editingMembersEl.innerHTML = editingUsers.map(u => `
+                    <div class="collab-user" style="background: ${u.color}20; border-left: 3px solid ${u.color};">
+                        <div class="collab-user-avatar" style="background: ${u.color};">${u.initials}</div>
+                        <div class="collab-user-info">
+                            <div class="collab-user-name">${u.name}</div>
+                            <div class="collab-user-action editing">✏️ 编辑: ${u.editingTask}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 最近操作
+            const activityEl = document.getElementById('recentActivity');
+            activityEl.innerHTML = activityLog.map(log => `
+                <div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">
+                    <div style="color: #333; margin-bottom: 3px;">
+                        <strong>${log.user}</strong> ${log.action} <strong>${log.task}</strong>
+                    </div>
+                    <div style="color: #999; font-size: 11px;">${log.time}</div>
+                </div>
+            `).join('');
+        }
+
+        // 切换协作面板
+        function toggleCollaborationPanel() {
+            document.getElementById('collaborationPanel').classList.toggle('open');
+        }
+
+        // 获取月份的天数和首日
+        function getMonthDays(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            return { firstDay, daysInMonth, daysInPrevMonth, year, month };
+        }
+
+        // 渲染日历
+        function renderCalendar() {
+            if (currentView === 'day') {
+                renderDayView();
+            } else if (currentView === 'week') {
+                renderWeekView();
+            } else {
+                renderMonthView();
+            }
+        }
+
+        // 渲染日视图
+        function renderDayView() {
+            const { year, month } = getMonthDays(currentMonth);
+            const today = new Date();
+            const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+            
+            document.getElementById('monthTitle').textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
+
+            const dayTasks = tasks.filter(t => t.date === dateStr);
+            const hours = Array.from({length: 24}, (_, i) => i);
+
+            let html = '';
+            
+            // 时间轴表头
+            html += `<div class="day-header" style="grid-column: 1 / -1;">时间</div>`;
+            html += `<div class="day-header" style="grid-column: 1 / -1;">工单详情</div>`;
+
+            // 按小时显示工单
+            hours.forEach(hour => {
+                const hourStr = String(hour).padStart(2, '0');
+                const hourTasks = dayTasks.filter(task => {
+                    const [startTime] = task.time.split('-');
+                    const startHour = parseInt(startTime.split(':')[0]);
+                    return startHour === hour;
+                });
+
+                html += `
+                    <div class="day-cell" style="grid-column: 1 / -1; min-height: 80px;">
+                        <div class="day-number" style="font-size: 16px; margin-bottom: 10px;">${hourStr}:00</div>
+                        <div class="day-tasks">
+                            ${hourTasks.map(task => `
+                                <div class="task-mini ${task.color} ${task.editingBy ? 'editing' : ''}" onclick="showTaskDetail(${task.id})" style="margin-bottom: 5px;">
+                                    ${task.editingBy ? '<div class="editing-indicator"></div>' : ''}
+                                    <div class="task-mini-text">${task.number} - ${task.time}</div>
+                                    <div class="task-mini-info">${task.staff} | ${task.location}</div>
+                                </div>
+                            `).join('')}
+                            ${hourTasks.length === 0 ? '<div style="color: #ccc; font-size: 12px;">暂无工单</div>' : ''}
+                        </div>
+                        <button class="add-btn" onclick="openAddTaskModal('${dateStr}')">+</button>
+                    </div>
+                `;
+            });
+
+            const calendarGrid = document.getElementById('calendar');
+            calendarGrid.style.gridTemplateColumns = '1fr';
+            calendarGrid.innerHTML = html;
+        }
+
+        // 渲染周视图
+        function renderWeekView() {
+            const { year, month } = getMonthDays(currentMonth);
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - dayOfWeek);
+
+            const weekDays = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startOfWeek);
+                day.setDate(startOfWeek.getDate() + i);
+                weekDays.push(day);
+            }
+
+            const startDate = weekDays[0];
+            const endDate = weekDays[6];
+            document.getElementById('monthTitle').textContent = `${startDate.getFullYear()}年${startDate.getMonth() + 1}月${startDate.getDate()}日 - ${endDate.getMonth() + 1}月${endDate.getDate()}日`;
+
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+            let html = '';
+
+            // 星期头
+            weekDays.forEach((day, index) => {
+                const isToday = day.toDateString() === today.toDateString();
+                html += `<div class="day-header ${isToday ? 'today' : ''}" style="${isToday ? 'background: #667eea; color: white;' : ''}">
+                    ${dayNames[index]}<br/>${day.getMonth() + 1}/${day.getDate()}
+                </div>`;
+            });
+
+            // 周视图的每一天
+            weekDays.forEach(day => {
+                const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                const dayTasks = tasks.filter(t => t.date === dateStr);
+                const isToday = day.toDateString() === today.toDateString();
+
+                html += `
+                    <div class="day-cell ${isToday ? 'today' : ''}">
+                        <div class="day-tasks">
+                            ${dayTasks.map(task => `
+                                <div class="task-mini ${task.color} ${task.editingBy ? 'editing' : ''}" onclick="showTaskDetail(${task.id})">
+                                    ${task.editingBy ? '<div class="editing-indicator"></div>' : ''}
+                                    <div class="task-mini-text">${task.number}</div>
+                                    <div class="task-mini-info">${task.time}</div>
+                                    <div class="task-mini-info">${task.staff}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-btn" onclick="openAddTaskModal('${dateStr}')">+</button>
+                    </div>
+                `;
+            });
+
+            const calendarGrid = document.getElementById('calendar');
+            calendarGrid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+            calendarGrid.innerHTML = html;
+        }
+
+        // 渲染月视图（原有功能）
+        function renderMonthView() {
+            const { firstDay, daysInMonth, daysInPrevMonth, year, month } = getMonthDays(currentMonth);
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+            document.getElementById('monthTitle').textContent = `${year}年 ${monthNames[month]}`;
+
+            let html = '';
+
+            // 星期头
+            dayNames.forEach(day => {
+                html += `<div class="day-header">${day}</div>`;
+            });
+
+            // 上个月的天数
+            for (let i = daysInPrevMonth - firstDay + 1; i <= daysInPrevMonth; i++) {
+                html += `<div class="day-cell other-month"><div class="day-number">${i}</div></div>`;
+            }
+
+            // 当前月的天数
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTasks = tasks.filter(t => t.date === dateStr);
+                const isToday = isCurrentMonth && today.getDate() === day;
+                const isOverload = dayTasks.length >= 2;
+
+                html += `
+                    <div class="day-cell ${isToday ? 'today' : ''} ${isOverload ? 'overload' : ''}">
+                        <div class="day-number">${day}</div>
+                        <div class="day-tasks">
+                            ${dayTasks.map(task => `
+                                <div class="task-mini ${task.color} ${task.editingBy ? 'editing' : ''}" onclick="showTaskDetail(${task.id})">
+                                    ${task.editingBy ? '<div class="editing-indicator"></div>' : ''}
+                                    <div class="task-mini-text">${task.number}</div>
+                                    <div class="task-mini-info">${task.staff}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-btn" onclick="openAddTaskModal('${dateStr}')">+</button>
+                    </div>
+                `;
+            }
+
+            // 下个月的天数
+            const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+            for (let day = 1; day <= totalCells - firstDay - daysInMonth; day++) {
+                html += `<div class="day-cell other-month"><div class="day-number">${day}</div></div>`;
+            }
+
+            const calendarGrid = document.getElementById('calendar');
+            calendarGrid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+            calendarGrid.innerHTML = html;
+        }
+
+        // 月份导航
+        function prevMonth() {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function today() {
+            currentMonth = new Date();
+            renderCalendar();
+        }
+
+        // 新建工单
+        function openAddTaskModal(dateStr) {
+            currentEditId = null;
+            selectedColor = 'red';
+            document.getElementById('modalTitle').textContent = '新建工单';
+            document.getElementById('taskNumber').value = '';
+            document.getElementById('taskPlate').value = '';
+            document.getElementById('taskStaff').value = '';
+            document.getElementById('taskLocation').value = '';
+            document.getElementById('taskNote').value = '';
+            document.getElementById('taskTime').value = '';
+            document.getElementById('taskService').value = '';
+            document.getElementById('taskDate').value = dateStr || '';
+            document.getElementById('timeDisplay').textContent = '选择时间';
+            updateColorPicker();
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        // 编辑工单
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            currentEditId = id;
+            selectedColor = task.color;
+            
+            // 模拟用户开始编辑
+            task.editingBy = currentUser.id;
+            onlineUsers[0].isEditing = true;
+            onlineUsers[0].editingTask = task.number;
+            updateOnlineStatus();
+            updateCollaborationPanel();
+            
+            // 添加操作日志
+            addActivityLog(`我`, '开始编辑', task.number);
+
+            document.getElementById('modalTitle').textContent = '编辑工单';
+            document.getElementById('taskNumber').value = task.number;
+            document.getElementById('taskPlate').value = task.plate;
+            document.getElementById('taskStaff').value = task.staff;
+            document.getElementById('taskLocation').value = task.location;
+            document.getElementById('taskNote').value = task.note;
+            document.getElementById('taskTime').value = task.time;
+            document.getElementById('taskService').value = task.service;
+            document.getElementById('taskDate').value = task.date;
+            
+            // 更新时间显示
+            if (task.time) {
+                document.getElementById('timeDisplay').textContent = task.time;
+            }
+            updateColorPicker();
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        // 关闭编辑
+        function closeTaskModal() {
+            if (currentEditId) {
+                const task = tasks.find(t => t.id === currentEditId);
+                if (task) {
+                    task.editingBy = null;
+                }
+                onlineUsers[0].isEditing = false;
+                onlineUsers[0].editingTask = null;
+                updateOnlineStatus();
+                updateCollaborationPanel();
+                renderCalendar();
+            }
+            document.getElementById('taskModal').classList.remove('active');
+            currentEditId = null;
+        }
+
+        // 选择颜色
+        function selectColor(element, color) {
+            document.querySelectorAll('.color-picker .color-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedColor = color;
+            document.getElementById('taskColor').value = color;
+        }
+
+        function updateColorPicker() {
+            const options = document.querySelectorAll('.color-picker .color-option');
+            const colorMap = { 'white': 0, 'blue': 1, 'orange': 2, 'red': 3, 'green': 4 };
+            options.forEach((el) => {
+                el.classList.remove('selected');
+            });
+            if (colorMap[selectedColor] !== undefined) {
+                options[colorMap[selectedColor]].classList.add('selected');
+            }
+        }
+
+        // 保存工单
+        function saveTask() {
+            const number = document.getElementById('taskNumber').value.trim();
+            const plate = document.getElementById('taskPlate').value.trim();
+            const staff = document.getElementById('taskStaff').value;
+            const location = document.getElementById('taskLocation').value.trim();
+            const note = document.getElementById('taskNote').value.trim();
+            const dateStr = document.getElementById('taskDate').value;
+            const time = document.getElementById('taskTime').value;
+            const service = document.getElementById('taskService').value;
+
+            if (!number || !plate || !staff || !location || !dateStr || !time || !service) {
+                showToast('请填写必填项');
+                return;
+            }
+
+            if (currentEditId) {
+                // 编辑
+                const task = tasks.find(t => t.id === currentEditId);
+                Object.assign(task, { number, plate, staff, location, note, date: dateStr, time, color: selectedColor, service });
+                task.editingBy = null;
+                addActivityLog(`我`, '更新了', number);
+            } else {
+                // 新建
+                tasks.push({
+                    id: Math.max(...tasks.map(t => t.id), 0) + 1,
+                    number, plate, staff, location, note, date: dateStr, time,
+                    color: selectedColor, type: '常规订单', service
+                });
+                addActivityLog(`我`, '创建了', number);
+            }
+
+            onlineUsers[0].isEditing = false;
+            onlineUsers[0].editingTask = null;
+            closeTaskModal();
+            renderCalendar();
+            updateOnlineStatus();
+            updateCollaborationPanel();
+            showToast('保存成功');
+        }
+
+        // 显示工单详情
+        function showTaskDetail(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            const panel = document.getElementById('detailPanel');
+            const title = document.getElementById('detailTitle');
+            const body = document.getElementById('detailBody');
+
+            title.textContent = task.number;
+
+            const editingUser = task.editingBy ? onlineUsers.find(u => u.id === task.editingBy) : null;
+
+            body.innerHTML = `
+                ${editingUser ? `
+                    <div class="editing-by">
+                        ✏️ ${editingUser.name} 正在编辑此工单
+                    </div>
+                ` : ''}
+                <div class="detail-row">
+                    <div class="detail-label">工单类型</div>
+                    <div class="detail-value">${task.type}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">车牌号</div>
+                    <div class="detail-value">${task.plate}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">安装人员</div>
+                    <div class="detail-value">${task.staff}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">日期</div>
+                    <div class="detail-value">${task.date}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">时间</div>
+                    <div class="detail-value">${task.time}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">地点</div>
+                    <div class="detail-value">${task.location}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">服务类型</div>
+                    <div class="detail-value">${task.service}</div>
+                </div>
+                ${task.note ? `
+                <div class="detail-row">
+                    <div class="detail-label">备注</div>
+                    <div class="detail-value">${task.note}</div>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                    <div class="detail-label">优先级</div>
+                    <div class="detail-value">
+                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; background: ${getColorValue(task.color)};"></span>
+                        ${getColorLabel(task.color)}
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button class="btn btn-primary" onclick="editTask(${id}); closeDetailPanel();" ${editingUser ? 'disabled' : ''}>✏️ 编辑</button>
+                    <button class="btn btn-danger" onclick="deleteTask(${id}); closeDetailPanel();">🗑️ 删除</button>
+                </div>
+            `;
+
+            panel.classList.add('open');
+        }
+
+        function closeDetailPanel() {
+            document.getElementById('detailPanel').classList.remove('open');
+        }
+
+        // 删除工单
+        function deleteTask(id) {
+            if (confirm('确认删除此工单?')) {
+                const task = tasks.find(t => t.id === id);
+                tasks = tasks.filter(t => t.id !== id);
+                addActivityLog(`我`, '删除了', task.number);
+                renderCalendar();
+                updateCollaborationPanel();
+                showToast('删除成功');
+            }
+        }
+
+        // 添加操作日志
+        function addActivityLog(user, action, task) {
+            activityLog.unshift({ user, action, task, time: '刚刚' });
+            if (activityLog.length > 10) {
+                activityLog.pop();
+            }
+            updateCollaborationPanel();
+        }
+
+        function getColorValue(color) {
+            const colors = {
+                'white': '#bdbdbd',
+                'blue': '#2196f3',
+                'orange': '#ff9800',
+                'red': '#f44336',
+                'green': '#4caf50'
+            };
+            return colors[color] || '#667eea';
+        }
+
+        function getColorLabel(color) {
+            const labels = {
+                'white': '常规订单',
+                'blue': '工程单',
+                'orange': '工程单',
+                'red': '加班单',
+                'green': '普通'
+            };
+            return labels[color] || '未分类';
+        }
+
+        // 显示提示
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeTaskModal();
+                closeDetailPanel();
+                toggleCollaborationPanel();
+                const aiWindow = document.getElementById('aiFloatWindow');
+                if (aiWindow.classList.contains('active')) {
+                    toggleAIWindow();
+                }
+            }
+        });
+
+        // 模态框外点击关闭
+        document.getElementById('taskModal').addEventListener('click', (e) => {
+            if (e.target.id === 'taskModal') {
+                closeTaskModal();
+            }
+        });
+
+        // ============ AI智能助手功能 ============
+        
+        // DeepSeek API 配置 (在 ai_assistant.html 中使用)
+        
+        let aiAssistantWindow = null;
+
+        // 打开AI助手窗口
+        function openAIAssistant() {
+            // 如果窗口已存在且未关闭，则聚焦
+            if (aiAssistantWindow && !aiAssistantWindow.closed) {
+                aiAssistantWindow.focus();
+                return;
+            }
+
+            // 计算窗口位置（居中）
+            const width = 1200;
+            const height = 800;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+
+            // 打开新窗口
+            aiAssistantWindow = window.open(
+                'ai_assistant.html',
+                'AI智能助手',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+
+            if (!aiAssistantWindow) {
+                alert('无法打开AI助手窗口，请检查浏览器弹窗设置');
+            }
+        }
+
+        // AI助手调用此函数来添加任务（提供给子窗口使用）
+        window.addTaskFromAI = function(taskData) {
+            console.log('收到AI助手创建任务请求:', taskData);
+            
+            // 生成新的任务ID
+            const newId = window.tasks.length > 0 
+                ? Math.max(...window.tasks.map(t => t.id), 0) + 1 
+                : 1;
+            
+            // 创建新任务
+            const newTask = {
+                id: newId,
+                number: taskData.number,
+                plate: taskData.plate,
+                staff: taskData.staff,
+                date: taskData.date,
+                time: taskData.time,
+                location: taskData.location,
+                service: taskData.service || '安装',
+                note: taskData.note || '',
+                color: taskData.color || 'blue',
+                type: taskData.number.startsWith('G') ? '工程单' : '常规订单'
+            };
+            
+            // 添加任务
+            window.tasks.push(newTask);
+            
+            // 保存到localStorage（如果有的话）
+            try {
+                localStorage.setItem('installationTasks', JSON.stringify(window.tasks));
+            } catch (e) {
+                console.warn('保存到localStorage失败:', e);
+            }
+            
+            // 刷新日历
+            renderCalendar();
+            
+            // 添加活动日志
+            addActivityLog('AI助手', '创建了', taskData.number);
+            
+            // 显示成功提示
+            showToast(`✅ 已创建工单 ${taskData.number}`);
+            
+            console.log('任务创建成功:', newTask);
+            return newTask;
+        };
+
+        // ============ 结束AI功能 ============
+
+        // 初始化应用
+        init();
+        function selectAIMode(mode) {
+            currentAIMode = mode;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.ai-mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            // 根据模式自动启用功能
+            if (mode === 'search') {
+                webSearchEnabled = true;
+                document.getElementById('aiWebSearchBtn').classList.add('active');
+            } else if (mode === 'deep') {
+                deepThinkEnabled = true;
+                document.getElementById('aiDeepThinkBtn').classList.add('active');
+            } else {
+                webSearchEnabled = false;
+                deepThinkEnabled = false;
+                document.getElementById('aiWebSearchBtn').classList.remove('active');
+                document.getElementById('aiDeepThinkBtn').classList.remove('active');
+            }
+            
+            // 更新占位符
+            const placeholders = {
+                'smart': '请输入您的需求...\n\n例如：\n- 帮我分析10月15日的工作量分配\n- 将沪A·12345的安装工单安排到明天上午',
+                'deep': '请详细描述需要深度分析的问题...\n\n例如：\n- 分析当前排班策略的优缺点，提供改进建议\n- 评估不同地区的安装效率，找出瓶颈',
+                'search': '请输入需要搜索的内容...\n\n例如：\n- 搜索浦东地区的玻璃供应商\n- 查找最新的安装规范要求',
+                'schedule': '请输入排班需求...\n\n例如：\n- 优化本周的工单分配\n- 根据地理位置智能安排安装顺序'
+            };
+            document.getElementById('aiPrompt').placeholder = placeholders[mode] || placeholders['smart'];
+            
+            showToast(`已切换到${getModeLabel(mode)}`);
+        }
+
+        // 获取模式标签
+        function getModeLabel(mode) {
+            const labels = {
+                'smart': '智能模式',
+                'deep': '深度思考模式',
+                'search': '联网搜索模式',
+                'schedule': '智能排班模式'
+            };
+            return labels[mode] || '智能模式';
+        }
+
+        // 切换联网搜索
+        function toggleWebSearch() {
+            webSearchEnabled = !webSearchEnabled;
+            document.getElementById('aiWebSearchBtn').classList.toggle('active');
+            showToast(webSearchEnabled ? '✓ 已启用联网搜索' : '✗ 已关闭联网搜索');
+        }
+
+        // 切换深度思考
+        function toggleDeepThink() {
+            deepThinkEnabled = !deepThinkEnabled;
+            document.getElementById('aiDeepThinkBtn').classList.toggle('active');
+            showToast(deepThinkEnabled ? '✓ 已启用深度思考' : '✗ 已关闭深度思考');
+        }
+
+        // 触发文件上传
+        function triggerFileUpload() {
+            document.getElementById('aiFileInput').click();
+        }
+
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const files = Array.from(event.target.files);
+            
+            files.forEach(file => {
+                // 检查文件大小（限制10MB）
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast(`文件 ${file.name} 超过10MB限制`);
+                    return;
+                }
+                
+                uploadedFiles.push({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    file: file
+                });
+            });
+            
+            updateFileList();
+            showToast(`已上传 ${files.length} 个文件`);
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            const container = document.getElementById('fileListContainer');
+            const listDiv = document.getElementById('uploadedFilesList');
+            
+            if (uploadedFiles.length === 0) {
+                listDiv.style.display = 'none';
+                return;
+            }
+            
+            listDiv.style.display = 'block';
+            container.innerHTML = uploadedFiles.map((file, index) => `
+                <div style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #f0f4ff; border-radius: 4px; font-size: 11px;">
+                    <span>📎 ${file.name}</span>
+                    <button onclick="removeFile(${index})" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px; padding: 0; line-height: 1;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // 移除文件
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+            showToast('文件已移除');
+        }
+
+        // 使用示例
+        function useExample(text) {
+            document.getElementById('aiPrompt').value = text;
+            showToast('已填充示例');
+        }
+
+        // 提交AI请求
+        function submitAIRequest() {
+            const prompt = document.getElementById('aiPrompt').value.trim();
+            
+            if (!prompt) {
+                showToast('请输入您的需求');
+                return;
+            }
+            
+            // 显示加载动画
+            const loadingEl = document.getElementById('aiLoading');
+            const submitBtn = document.querySelector('.ai-submit-btn');
+            loadingEl.classList.add('active');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '处理中...';
+            
+            // 构建请求信息
+            const requestInfo = {
+                mode: currentAIMode,
+                prompt: prompt,
+                webSearch: webSearchEnabled,
+                deepThink: deepThinkEnabled,
+                files: uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })),
+                context: {
+                    currentDate: new Date().toISOString().split('T')[0],
+                    totalTasks: tasks.length,
+                    onlineUsers: onlineUsers.filter(u => u.status === '在线').length
+                }
+            };
+            
+            console.log('AI请求信息:', requestInfo);
+            
+            // 调用 DeepSeek API
+            callDeepSeekAPI(requestInfo);
+        }
+
+        // 调用 DeepSeek API
+        async function callDeepSeekAPI(requestInfo) {
+            try {
+                // 构建系统提示词
+                let systemPrompt = `你是一个专业的工程安装管理助手。当前系统信息：
+- 总工单数：${requestInfo.context.totalTasks}
+- 在线人员：${requestInfo.context.onlineUsers}人
+- 当前日期：${requestInfo.context.currentDate}
+
+可用人员：${staffList.join('、')}
+服务类型：${serviceList.join('、')}
+
+请根据用户需求提供专业的建议和分析。`;
+
+                // 根据模式调整提示词
+                if (requestInfo.mode === 'schedule') {
+                    systemPrompt += '\n\n请专注于工单排班优化、工作量分析和效率提升建议。';
+                } else if (requestInfo.mode === 'deep') {
+                    systemPrompt += '\n\n请进行深度分析，提供详细的数据洞察和改进方案。';
+                } else if (requestInfo.mode === 'search') {
+                    systemPrompt += '\n\n请提供相关的搜索结果和推荐信息。';
+                }
+
+                // 添加上下文信息
+                let userMessage = requestInfo.prompt;
+                if (requestInfo.files.length > 0) {
+                    userMessage += `\n\n[已上传${requestInfo.files.length}个文件: ${requestInfo.files.map(f => f.name).join(', ')}]`;
+                }
+                if (requestInfo.webSearch) {
+                    userMessage += '\n\n[需要联网搜索最新信息]';
+                }
+
+                // 调用 DeepSeek API
+                const response = await fetchWithAuth('/ai/chat', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userMessage }
+                        ],
+                        mode: requestInfo.mode,
+                        deepThink: requestInfo.deepThink,
+                        webSearch: requestInfo.webSearch
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // 处理响应
+                processAIResponse(requestInfo, aiResponse);
+
+            } catch (error) {
+                console.error('DeepSeek API 错误:', error);
+                
+                // 如果API调用失败，使用模拟响应
+                showToast('⚠️ API调用失败，使用模拟数据');
+                
+                // 模拟响应
+                setTimeout(() => {
+                    const mockResponse = generateMockResponse(requestInfo);
+                    processAIResponse(requestInfo, mockResponse);
+                }, 1000);
+            }
+        }
+
+        // 生成模拟响应（当API不可用时）
+        function generateMockResponse(requestInfo) {
+            if (requestInfo.mode === 'schedule') {
+                return generateScheduleResponse(requestInfo);
+            } else if (requestInfo.mode === 'search') {
+                return generateSearchResponse(requestInfo);
+            } else if (requestInfo.mode === 'deep') {
+                return generateDeepResponse(requestInfo);
+            } else {
+                return generateSmartResponse(requestInfo);
+            }
+        }
+
+        // 处理AI响应
+        function processAIResponse(requestInfo, aiResponse = null) {
+            const loadingEl = document.getElementById('aiLoading');
+            const submitBtn = document.querySelector('.ai-submit-btn');
+            
+            // 使用真实API响应或生成模拟响应
+            let response = '';
+            let action = null;
+            
+            if (aiResponse) {
+                // 使用 DeepSeek API 的真实响应
+                response = aiResponse;
+                if (requestInfo.mode === 'schedule') {
+                    action = 'schedule';
+                }
+            } else {
+                // 使用模拟响应（仅用于演示）
+                if (requestInfo.mode === 'schedule') {
+                    response = generateScheduleResponse(requestInfo);
+                    action = 'schedule';
+                } else if (requestInfo.mode === 'search') {
+                    response = generateSearchResponse(requestInfo);
+                } else if (requestInfo.mode === 'deep') {
+                    response = generateDeepResponse(requestInfo);
+                } else {
+                    response = generateSmartResponse(requestInfo);
+                }
+            }
+            
+            // 隐藏加载动画
+            loadingEl.classList.remove('active');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🚀 开始处理';
+            
+            // 显示结果
+            showAIResult(response, action);
+            
+            // 添加到活动日志
+            addActivityLog('AI助手', '完成了', requestInfo.mode === 'schedule' ? '智能排班' : 'AI分析');
+        }
+
+        // 生成智能排班响应
+        function generateScheduleResponse(requestInfo) {
+            const staffWorkload = {};
+            staffList.forEach(s => staffWorkload[s] = 0);
+            tasks.forEach(task => {
+                if (task.staff) staffWorkload[task.staff]++;
+            });
+            
+            const sortedStaff = Object.entries(staffWorkload).sort((a, b) => b[1] - a[1]);
+            
+            return `📊 智能排班分析完成
+
+工作量分析：
+${sortedStaff.map(([staff, count]) => `  • ${staff}: ${count}个工单`).join('\n')}
+
+💡 优化建议：
+1. ${sortedStaff[0][0]}的工作量最多(${sortedStaff[0][1]}个)，建议分配部分工单给其他人员
+2. ${sortedStaff[sortedStaff.length-1][0]}的工作量较少(${sortedStaff[sortedStaff.length-1][1]}个)，可以承接更多任务
+3. 建议按地理位置聚合，减少路程时间
+
+✅ 已为您生成优化方案，是否应用？`;
+        }
+
+        // 生成搜索响应
+        function generateSearchResponse(requestInfo) {
+            return `🔍 联网搜索结果
+
+根据您的搜索："${requestInfo.prompt}"
+
+找到以下相关信息：
+1. 【推荐】上海浦东玻璃供应有限公司 - 距离3.2km
+   地址：浦东新区张江路123号
+   评分：⭐⭐⭐⭐⭐ (4.8分)
+
+2. 华东玻璃批发中心 - 距离5.8km
+   地址：浦东新区世纪大道456号
+   评分：⭐⭐⭐⭐ (4.3分)
+
+3. 上海优质玻璃厂 - 距离7.1km
+   地址：浦东新区外高桥路789号
+   评分：⭐⭐⭐⭐ (4.1分)
+
+💡 提示：建议选择评分高且距离近的供应商`;
+        }
+
+        // 生成深度思考响应
+        function generateDeepResponse(requestInfo) {
+            return `🔬 深度分析报告
+
+问题分析：${requestInfo.prompt}
+
+📈 数据洞察：
+• 当前系统共有${requestInfo.context.totalTasks}个工单
+• 在线协作人员${requestInfo.context.onlineUsers}人
+• 分析周期：${requestInfo.context.currentDate}
+
+🎯 核心发现：
+1. 工作负载分布不均，存在20%的效率提升空间
+2. 地理位置聚合度较低，建议优化路线规划
+3. 紧急工单处理时效性良好，但常规工单存在积压
+
+💡 改进建议：
+1. 实施动态负载均衡算法
+2. 引入地理信息系统优化路线
+3. 设置工单优先级自动调整机制
+4. 增加实时监控看板
+
+⚠️ 风险提示：
+• 高峰期可能出现人手不足
+• 部分地区服务覆盖薄弱
+
+🚀 下一步行动：
+建议先从负载均衡优化开始，预计可提升15-20%效率`;
+        }
+
+        // 生成智能响应
+        function generateSmartResponse(requestInfo) {
+            const prompt = requestInfo.prompt.toLowerCase();
+            
+            if (prompt.includes('分析') || prompt.includes('统计')) {
+                return `📊 数据分析结果
+
+根据您的需求进行了快速分析：
+
+当前系统状态：
+• 总工单数：${tasks.length}
+• 今日工单：${tasks.filter(t => t.date === new Date().toISOString().split('T')[0]).length}
+• 在线人员：${onlineUsers.filter(u => u.status === '在线').length}人
+
+💡 关键指标正常，系统运行良好`;
+            } else if (prompt.includes('优化') || prompt.includes('改进')) {
+                return `💡 优化建议
+
+基于当前数据分析：
+
+1. ⏰ 时间优化：合理安排工单时间段，避免集中
+2. 📍 路线优化：按地理位置就近安排
+3. 👥 人员优化：平衡各人员工作量
+4. 🎯 优先级优化：紧急工单优先处理
+
+建议使用"智能排班"模式获取详细方案`;
+            } else {
+                return `✅ AI助手已收到您的请求
+
+"${requestInfo.prompt}"
+
+${requestInfo.webSearch ? '🌐 已启用联网搜索\n' : ''}${requestInfo.deepThink ? '🧠 已启用深度思考\n' : ''}${requestInfo.files.length > 0 ? `📎 已上传${requestInfo.files.length}个文件\n` : ''}
+我会根据您的需求提供最佳建议。
+
+💡 提示：您可以尝试更具体的问题，如"分析本月工单"或"优化排班"等`;
+            }
+        }
+
+        // 显示AI结果
+        function showAIResult(response, action) {
+            const resultModal = `
+                <div class="modal active" id="aiResultModal" style="z-index: 300;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div class="modal-header" style="margin: 0;">🤖 AI处理结果</div>
+                            <button onclick="document.getElementById('aiResultModal').remove()" style="margin: 0; position: static; font-size: 24px; background: none; border: none; color: #333; cursor: pointer;">✕</button>
+                        </div>
+                        
+                        <div style="background: #f8f9fb; padding: 20px; border-radius: 8px; white-space: pre-line; line-height: 1.8; font-size: 13px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                            ${response}
+                        </div>
+
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="document.getElementById('aiResultModal').remove()">关闭</button>
+                            ${action === 'schedule' ? '<button class="btn btn-primary" onclick="applyAISchedule(); document.getElementById(\'aiResultModal\').remove();">应用优化方案</button>' : ''}
+                            <button class="btn btn-primary" onclick="copyToClipboard(\`${response.replace(/`/g, '\\`')}\`); showToast(\'已复制到剪贴板\')">📋 复制</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const existing = document.getElementById('aiResultModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', resultModal);
+        }
+
+        // 应用AI排班优化
+        function applyAISchedule() {
+            // 这里可以实现实际的优化算法
+            showToast('✅ 优化方案已应用');
+            renderCalendar();
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        // ============ 结束AI功能 ============
+
+        // 初始化应用
+        init();
+    
+        // ================= 后端数据集成 =================
+        let staffIdMap = {};
+        let serviceIdMap = {};
+        let backendDataLoaded = false;
+
+        async function loadBackendData() {
+            try {
+                const [tasksRes, staffRes, serviceRes, onlineRes, activityRes] = await Promise.all([
+                    fetchWithAuth('/tasks'),
+                    fetchWithAuth('/staff'),
+                    fetchWithAuth('/services'),
+                    fetchWithAuth('/online-users'),
+                    fetchWithAuth('/activity')
+                ]);
+
+                const taskJson = await tasksRes.json();
+                tasks = taskJson.tasks || tasks;
+
+                const staffJson = await staffRes.json();
+                staffList = (staffJson.staff || []).map(item => item.name);
+                staffIdMap = Object.fromEntries((staffJson.staff || []).map(item => [item.name, item.id]));
+                updateStaffSelect();
+
+                const serviceJson = await serviceRes.json();
+                serviceList = (serviceJson.services || []).map(item => item.name);
+                serviceIdMap = Object.fromEntries((serviceJson.services || []).map(item => [item.name, item.id]));
+                updateServiceSelect();
+
+                const onlineJson = await onlineRes.json();
+                onlineUsers = onlineJson.users || onlineUsers;
+
+                const activityJson = await activityRes.json();
+                activityLog = activityJson.activity || activityLog;
+
+                backendDataLoaded = true;
+                renderCalendar();
+                updateOnlineStatus();
+                updateCollaborationPanel();
+            } catch (error) {
+                console.error('加载后端数据失败:', error);
+                showToast('加载后端数据失败，可重试或检查登录状态');
+            }
+        }
+
+        loadBackendData();
+
+        const originalAddActivityLog = addActivityLog;
+        addActivityLog = function(user, action, task) {
+            originalAddActivityLog(user, action, task);
+            fetchWithAuth('/activity', {
+                method: 'POST',
+                body: JSON.stringify({ action, task })
+            }).catch(() => {});
+        };
+
+        let isSavingTask = false;
+        saveTask = async function() {
+            const number = document.getElementById('taskNumber').value.trim();
+            const plate = document.getElementById('taskPlate').value.trim();
+            const staff = document.getElementById('taskStaff').value;
+            const location = document.getElementById('taskLocation').value.trim();
+            const note = document.getElementById('taskNote').value.trim();
+            const dateStr = document.getElementById('taskDate').value;
+            const time = document.getElementById('taskTime').value;
+            const service = document.getElementById('taskService').value;
+
+            if (!number || !plate || !staff || !location || !dateStr || !time || !service) {
+                showToast('请填写必填项');
+                return;
+            }
+
+            if (isSavingTask) return;
+            isSavingTask = true;
+
+            const payload = { number, plate, staff, location, note, date: dateStr, time, service, color: selectedColor, type: '常规订单' };
+
+            try {
+                if (currentEditId) {
+                    const response = await fetchWithAuth(`/tasks/${currentEditId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || '更新失败');
+                    tasks = tasks.map(t => t.id === currentEditId ? result.task : t);
+                    addActivityLog('我', '更新了', result.task.number);
+                } else {
+                    const response = await fetchWithAuth('/tasks', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || '创建失败');
+                    tasks.push(result.task);
+                    addActivityLog('我', '创建了', result.task.number);
+                }
+
+                onlineUsers[0].isEditing = false;
+                onlineUsers[0].editingTask = null;
+                closeTaskModal();
+                renderCalendar();
+                updateOnlineStatus();
+                updateCollaborationPanel();
+                showToast('保存成功');
+            } catch (error) {
+                console.error('保存工单失败:', error);
+                showToast(error.message || '保存失败，请稍后重试');
+            } finally {
+                isSavingTask = false;
+            }
+        };
+
+        deleteTask = async function(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            if (!confirm(`确认删除工单 ${task.number} 吗？`)) return;
+            try {
+                const response = await fetchWithAuth(`/tasks/${id}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    let detail = '';
+                    try { detail = (await response.json()).message; } catch (e) {}
+                    throw new Error(detail || '删除失败');
+                }
+                tasks = tasks.filter(t => t.id !== id);
+                renderCalendar();
+                addActivityLog('我', '删除了', task.number);
+                showToast('删除成功');
+            } catch (error) {
+                showToast(error.message || '删除失败，请稍后重试');
+            }
+        };
+
+        confirmAddStaff = async function() {
+            const input = document.getElementById('newStaffName');
+            const modal = document.getElementById('addStaffModal');
+            if (!input) return;
+            const name = input.value.trim();
+            if (!name) { showToast('请输入人员姓名'); return; }
+            if (staffList.includes(name)) { showToast('该人员已存在'); return; }
+            try {
+                const response = await fetchWithAuth('/staff', {
+                    method: 'POST',
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || '添加失败');
+                staffList.push(result.staff.name);
+                staffIdMap[result.staff.name] = result.staff.id;
+                updateStaffSelect();
+                document.getElementById('taskStaff').value = result.staff.name;
+                if (modal) modal.remove();
+                showToast(`已添加人员 ${result.staff.name}`);
+            } catch (error) {
+                showToast(error.message || '添加人员失败');
+            }
+        };
+
+        deleteStaff = async function() {
+            const select = document.getElementById('taskStaff');
+            if (!select || !select.value) {
+                showToast('请先选择要删除的人员');
+                return;
+            }
+            const selected = select.value;
+            const staffId = staffIdMap[selected];
+            if (!staffId) {
+                showToast('此人员不可删除');
+                return;
+            }
+            if (!confirm(`确定删除人员 "${selected}" 吗？`)) return;
+            try {
+                const response = await fetchWithAuth(`/staff/${staffId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('删除失败');
+                staffList = staffList.filter(name => name !== selected);
+                delete staffIdMap[selected];
+                updateStaffSelect();
+                select.value = '';
+                showToast(`已删除人员 ${selected}`);
+            } catch (error) {
+                showToast(error.message || '删除人员失败');
+            }
+        };
+
+        confirmAddService = async function() {
+            const input = document.getElementById('newServiceName');
+            const modal = document.getElementById('addServiceModal');
+            if (!input) return;
+            const service = input.value.trim();
+            if (!service) { showToast('请输入服务类型'); return; }
+            if (serviceList.includes(service)) { showToast('该服务已存在'); return; }
+            try {
+                const response = await fetchWithAuth('/services', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: service })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || '添加失败');
+                serviceList.push(result.service.name);
+                serviceIdMap[result.service.name] = result.service.id;
+                updateServiceSelect();
+                document.getElementById('taskService').value = result.service.name;
+                if (modal) modal.remove();
+                showToast(`已添加服务 ${result.service.name}`);
+            } catch (error) {
+                showToast(error.message || '添加服务失败');
+            }
+        };
+
+        deleteServiceType = async function() {
+            const select = document.getElementById('taskService');
+            if (!select || !select.value) {
+                showToast('请先选择要删除的服务');
+                return;
+            }
+            const selected = select.value;
+            const serviceId = serviceIdMap[selected];
+            if (!serviceId) {
+                showToast('此服务不可删除');
+                return;
+            }
+            if (!confirm(`确定删除服务 "${selected}" 吗？`)) return;
+            try {
+                const response = await fetchWithAuth(`/services/${serviceId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('删除失败');
+                serviceList = serviceList.filter(name => name !== selected);
+                delete serviceIdMap[selected];
+                updateServiceSelect();
+                select.value = '';
+                showToast(`已删除服务 ${selected}`);
+            } catch (error) {
+                showToast(error.message || '删除服务失败');
+            }
+        };
+
+
+    
+</script>
+</body>
+</html>
+

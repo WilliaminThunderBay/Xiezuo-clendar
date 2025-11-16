@@ -1,0 +1,15 @@
+node_modules
+.env
+*.log
+.DS_Store
+backend/data/*.json
+backend/uploads/*
+.vscode
+.git
+测试指南.md
+部署指南.md
+快速部署.md
+企业部署成本估算.md
+部署检查清单.md
+AI助手创建日程功能修复说明.md
+docs/

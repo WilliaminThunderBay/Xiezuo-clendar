@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .unread-badge {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .filters {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #dee2e6;
+            background: white;
+            color: #495057;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+        }
+
+        .notifications-list {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 16px;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background: #f0f4ff;
+        }
+
+        .notification-item.unread::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #667eea;
+        }
+
+        .notification-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .icon-info {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .icon-success {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .icon-warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .icon-error {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .notification-time {
+            font-size: 13px;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #495057;
+            line-height: 1.6;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .btn-delete:hover {
+            background: #e9ecef;
+            color: #dc3545;
+        }
+
+        .empty-state {
+            padding: 80px 30px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+            color: #adb5bd;
+        }
+
+        .loading {
+            padding: 40px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: stretch;
+            }
+
+            .header-btn {
+                flex: 1;
+            }
+
+            .notification-item {
+                padding: 16px 20px;
+            }
+
+            .notification-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                🔔 通知中心
+                <span class="unread-badge" id="unreadBadge">0</span>
+            </h1>
+            <div class="header-actions">
+                <button class="header-btn" onclick="markAllAsRead()">全部已读</button>
+                <button class="header-btn" onclick="window.location.href='installation_schedule.html'">返回主页</button>
+            </div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterNotifications('all')">全部</button>
+            <button class="filter-btn" onclick="filterNotifications('unread')">未读</button>
+            <button class="filter-btn" onclick="filterNotifications('info')">📘 消息</button>
+            <button class="filter-btn" onclick="filterNotifications('success')">✅ 成功</button>
+            <button class="filter-btn" onclick="filterNotifications('warning')">⚠️ 警告</button>
+            <button class="filter-btn" onclick="filterNotifications('error')">❌ 错误</button>
+        </div>
+
+        <div class="notifications-list" id="notificationsList">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <div>加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app-config.js"></script>
+    <script>
+        let allNotifications = [];
+        let currentFilter = 'all';
+
+        // 加载通知
+        async function loadNotifications() {
+            try {
+                const response = await fetchWithAuth(`${API_BASE_URL}/api/notifications`);
+                const data = await response.json();
+                
+                allNotifications = data.notifications || [];
+                renderNotifications();
+                updateUnreadCount();
+            } catch (error) {
+                console.error('加载通知失败:', error);
+                showEmptyState('加载失败', '无法加载通知，请稍后重试');
+            }
+        }
+
+        // 渲染通知列表
+        function renderNotifications() {
+            const container = document.getElementById('notificationsList');
+            
+            let filtered = allNotifications;
+            if (currentFilter === 'unread') {
+                filtered = allNotifications.filter(n => !n.read);
+            } else if (currentFilter !== 'all') {
+                filtered = allNotifications.filter(n => n.type === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                const message = currentFilter === 'unread' ? '暂无未读通知' : '暂无通知';
+                showEmptyState(message, '所有通知都将显示在这里');
+                return;
+            }
+
+            container.innerHTML = filtered.map(notification => {
+                const iconMap = {
+                    info: '📘',
+                    success: '✅',
+                    warning: '⚠️',
+                    error: '❌'
+                };
+
+                const timeAgo = getTimeAgo(notification.createdAt);
+
+                return `
+                    <div class="notification-item ${!notification.read ? 'unread' : ''}" 
+                         onclick="handleNotificationClick('${notification.id}')">
+                        <div class="notification-icon icon-${notification.type}">
+                            ${iconMap[notification.type] || '📘'}
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-header">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-time">${timeAgo}</div>
+                            </div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-actions">
+                                ${notification.link ? `
+                                    <button class="action-btn btn-view" onclick="event.stopPropagation(); viewNotification('${notification.id}', '${notification.link}')">
+                                        查看详情
+                                    </button>
+                                ` : ''}
+                                <button class="action-btn btn-delete" onclick="event.stopPropagation(); deleteNotification('${notification.id}')">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 显示空状态
+        function showEmptyState(title, subtitle) {
+            const container = document.getElementById('notificationsList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔔</div>
+                    <div class="empty-state-text">${title}</div>
+                    <div class="empty-state-subtext">${subtitle}</div>
+                </div>
+            `;
+        }
+
+        // 处理通知点击
+        async function handleNotificationClick(id) {
+            const notification = allNotifications.find(n => n.id === id);
+            if (notification && !notification.read) {
+                await markAsRead(id);
+            }
+        }
+
+        // 标记为已读
+        async function markAsRead(id) {
+            try {
+                await fetchWithAuth(`${API_BASE_URL}/api/notifications/${id}/read`, {
+                    method: 'PUT'
+                });
+                
+                const notification = allNotifications.find(n => n.id === id);
+                if (notification) {
+                    notification.read = true;
+                }
+                
+                renderNotifications();
+                updateUnreadCount();
+            } catch (error) {
+                console.error('标记已读失败:', error);
+            }
+        }
+
+        // 全部标记为已读
+        async function markAllAsRead() {
+            try {
+                await fetchWithAuth(`${API_BASE_URL}/api/notifications/read-all`, {
+                    method: 'PUT'
+                });
+                
+                allNotifications.forEach(n => n.read = true);
+                renderNotifications();
+                updateUnreadCount();
+            } catch (error) {
+                console.error('标记全部已读失败:', error);
+                alert('操作失败，请重试');
+            }
+        }
+
+        // 查看通知详情
+        async function viewNotification(id, link) {
+            await markAsRead(id);
+            if (link) {
+                window.location.href = link;
+            }
+        }
+
+        // 删除通知
+        async function deleteNotification(id) {
+            if (!confirm('确定要删除这条通知吗？')) {
+                return;
+            }
+
+            try {
+                await fetchWithAuth(`${API_BASE_URL}/api/notifications/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                allNotifications = allNotifications.filter(n => n.id !== id);
+                renderNotifications();
+                updateUnreadCount();
+            } catch (error) {
+                console.error('删除通知失败:', error);
+                alert('删除失败，请重试');
+            }
+        }
+
+        // 筛选通知
+        function filterNotifications(type) {
+            currentFilter = type;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderNotifications();
+        }
+
+        // 更新未读数量
+        function updateUnreadCount() {
+            const unreadCount = allNotifications.filter(n => !n.read).length;
+            document.getElementById('unreadBadge').textContent = unreadCount;
+        }
+
+        // 时间格式化
+        function getTimeAgo(dateString) {
+            const now = new Date();
+            const date = new Date(dateString);
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return '刚刚';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)} 天前`;
+            
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        // 定时刷新通知
+        setInterval(() => {
+            loadNotifications();
+        }, 30000); // 每30秒刷新一次
+
+        // 初始加载
+        loadNotifications();
+    </script>
+</body>
+</html>
