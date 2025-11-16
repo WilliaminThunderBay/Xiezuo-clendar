@@ -1,5 +1,9 @@
 (function () {
-    const API_BASE_URL = window.APP_API_BASE_URL || 'http://localhost:3000/api';
+    // 自动检测API地址：生产环境使用当前域名，开发环境使用localhost
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const API_BASE_URL = isProduction 
+        ? `${window.location.origin}/api`  // 生产环境：使用当前域名
+        : 'http://localhost:3000/api';      // 开发环境：使用localhost
 
     function getAuthToken() {
         return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';

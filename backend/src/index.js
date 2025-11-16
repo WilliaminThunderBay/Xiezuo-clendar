@@ -42,6 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(uploadPath));
 app.use('/frontend', express.static(frontendPath)); // 服务前端静态文件
 
+// 健康检查端点
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -50,6 +51,9 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.redirect('/frontend/login.html');
 });
+
+// 提供根目录的HTML文件（用于直接访问installation_schedule.html等）
+app.use(express.static(path.join(__dirname, '..', '..')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
