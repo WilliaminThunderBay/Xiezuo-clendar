@@ -3,8 +3,13 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
 
+// 生产环境使用内存数据库，开发环境使用文件数据库
+const isProduction = process.env.NODE_ENV === 'production';
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DB_PATH = path.join(DATA_DIR, 'db.json');
+
+// 内存数据库（生产环境使用）
+let memoryDb = null;
 
 const defaultTasks = [
   {
@@ -175,12 +180,22 @@ const defaultData = {
 };
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
+  if (!isProduction && !fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 }
 
 function readDb() {
+  // 生产环境：使用内存数据库
+  if (isProduction) {
+    if (!memoryDb) {
+      console.log('初始化内存数据库（生产环境）');
+      memoryDb = JSON.parse(JSON.stringify(defaultData));
+    }
+    return memoryDb;
+  }
+
+  // 开发环境：使用文件数据库
   ensureDataDir();
   if (!fs.existsSync(DB_PATH)) {
     fs.writeFileSync(DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
@@ -197,6 +212,13 @@ function readDb() {
 }
 
 function writeDb(data) {
+  // 生产环境：写入内存
+  if (isProduction) {
+    memoryDb = data;
+    return;
+  }
+
+  // 开发环境：写入文件
   ensureDataDir();
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
